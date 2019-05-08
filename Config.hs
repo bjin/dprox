@@ -61,7 +61,7 @@ parseConfigFile bs = case P.parseOnly parseFile bs of
         eof <- P.atEnd
         when eof $ fail "eof reached"
         skipSpaceTab
-        ((Just <$> parseConfig) <|> skipLine)
+        (Just <$> parseConfig) <|> skipLine
 
     parseConfig =
         parsePair "server" serverValue <|>
@@ -93,7 +93,7 @@ ip = (<?> "IP address") $ do
         Just ipaddr -> return ipaddr
 
 port :: P.Parser PortNumber
-port = read . BS8.unpack <$> P.takeWhile1 (P8.isDigit_w8) <?> "Port Number"
+port = read . BS8.unpack <$> P.takeWhile1 P8.isDigit_w8 <?> "Port Number"
 
 globalOption :: Parser GlobalConfig
 globalOption = GlobalConfig <$> userOption
@@ -157,12 +157,7 @@ serverValue = do
     return (Server parsedDomain parsedIP parsedPort)
 
 addressValue :: P.Parser Config
-addressValue = do
-    parsedDomain <- P8.char '/' *> domain <* P8.char '/'
-    parsedIP <- ip
-    return (Address parsedDomain parsedIP)
+addressValue = Address <$> (P8.char '/' *> domain <* P8.char '/') <*> ip
 
 bogusNXValue :: P.Parser Config
-bogusNXValue = do
-    parsedIP <- ip
-    return (BogusNX parsedIP)
+bogusNXValue = BogusNX <$> ip

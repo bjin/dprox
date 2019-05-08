@@ -10,7 +10,7 @@ import           DomainRoute
 
 main :: IO ()
 main = hspec $ do
-    let query domain = BS8.count '.' domain
+    let query = BS8.count '.'
         build ds = [(domain, query domain) | domain <- ds]
         domains = ["cn", "chn.net", "red.com", "black.com", "www.red.com", "a.b.c.d.red.com"]
         dr1 = newDomainRoute const (build domains)

@@ -4,7 +4,7 @@ module Main where
 
 import           Control.Concurrent        (forkIO)
 import           Control.Exception         (SomeException, handle)
-import           Control.Monad             (forM, forever)
+import           Control.Monad             (forM, forever, void)
 import           Data.ByteString           (ByteString)
 import qualified Data.Foldable             as F
 import           Data.Map                  ((!))
@@ -80,7 +80,7 @@ handleAddress route resolver qd qt =
 
 handleBogusNX :: S.Set IP -> Resolver -> Resolver
 handleBogusNX blacklist resolver qd qt =
-    fmap (fmap (filter (not.isBlacklisted))) $ resolver qd qt
+    fmap (filter (not . isBlacklisted)) <$> resolver qd qt
   where
     isBlacklisted (DNS.RD_A ipv4)    = IPv4 ipv4 `S.member` blacklist
     isBlacklisted (DNS.RD_AAAA ipv6) = IPv6 ipv6 `S.member` blacklist
@@ -121,9 +121,7 @@ main = do
         rs <- DNS.makeResolvSeed v
         return (k, rs)
 
-    case setUser of
-        Nothing  -> return ()
-        Just uid -> setuid uid
+    F.mapM_ setuid setUser
 
     let processWithResolver resolver = forever $ do
             (bs, addr) <- recvFrom sock (fromIntegral DNS.maxUdpSize)
@@ -131,7 +129,7 @@ main = do
                 resp <- processDNS resolver bs
                 case resp of
                     Left _      -> return ()
-                    Right resp' -> sendTo sock resp' addr >> return ()
+                    Right resp' -> void $ sendTo sock resp' addr
 
         createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)
