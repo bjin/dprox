@@ -68,13 +68,13 @@ parseConfigFile bs = case P.parseOnly parseFile bs of
         parsePair "address" addressValue <|>
         parsePair "bogus-nxdomain" bogusNXValue
 
-    parsePair key value = do
-        P8.string key
+    parsePair optionName optionValue = do
+        _ <- P8.string optionName
         skipSpaceTab
-        P8.char '='
+        _ <- P8.char '='
         skipSpaceTab
-        res <- value
-        skipLine
+        res <- optionValue
+        _ <- skipLine
         return res
 
     skipLine = do
@@ -89,8 +89,8 @@ ip :: P.Parser IP
 ip = (<?> "IP address") $ do
     ipstr <- BS8.unpack <$> P8.takeWhile1 (P8.inClass "0-9.:")
     case readMaybe ipstr of
-        Nothing -> fail ("invalid IP address: " ++ ipstr)
-        Just ip -> return ip
+        Nothing     -> fail ("invalid IP address: " ++ ipstr)
+        Just ipaddr -> return ipaddr
 
 port :: P.Parser PortNumber
 port = read . BS8.unpack <$> P.takeWhile1 (P8.isDigit_w8) <?> "Port Number"

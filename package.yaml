@@ -33,6 +33,8 @@ executables:
     - Config
     - DomainRoute
     ghc-options:
+    - -Wall
+    - -O2
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
@@ -44,6 +46,8 @@ tests:
     other-modules:
     - DomainRoute
     ghc-options:
+    - -Wall
+    - -O2
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N

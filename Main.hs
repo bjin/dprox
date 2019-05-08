@@ -3,7 +3,7 @@
 module Main where
 
 import           Control.Concurrent        (forkIO)
-import           Control.Exception         (SomeException, handle, throwIO)
+import           Control.Exception         (SomeException, handle)
 import           Control.Monad             (forM, forever)
 import           Data.ByteString           (ByteString)
 import qualified Data.Foldable             as F
@@ -26,7 +26,7 @@ processQuery :: Resolver -> DNS.Question -> IO [DNS.ResourceRecord]
 processQuery resolver (DNS.Question qd qt) = handle handler $ do
     res <- resolver qd qt
     case res of
-        Left e  -> return []
+        Left _  -> return []
         Right r -> return (map wrapper r)
   where
     handler :: SomeException -> IO [DNS.ResourceRecord]
@@ -71,8 +71,8 @@ handleAddress route resolver qd qt =
     if null userDefined then resolver qd qt else return (Right userDefined)
   where
     ips = fromMaybe [] $ getDomainRouteExact route qd
-    ipv4 = [DNS.RD_A ipv4    | IPv4 ipv4 <- ips]
-    ipv6 = [DNS.RD_AAAA ipv6 | IPv6 ipv6 <- ips]
+    ipv4 = [DNS.RD_A    ipv4addr | IPv4 ipv4addr <- ips]
+    ipv6 = [DNS.RD_AAAA ipv6addr | IPv6 ipv6addr <- ips]
 
     userDefined | qt == DNS.A    = ipv4
                 | qt == DNS.AAAA = ipv6

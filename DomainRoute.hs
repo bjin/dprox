@@ -28,10 +28,10 @@ instance Foldable DomainRoute where
     foldMap f DomainRoute{..} = foldMap f currentNode `mappend` (foldMap.foldMap.foldMap) f children
 
 newDomainRoute :: (a -> a -> a) -> [(DNS.Domain, a)] -> DomainRoute a
-newDomainRoute merge servers = go all
+newDomainRoute merge servers = go sortedServers
   where
     fmapFst f (x, y) = (f x, y)
-    all = sortOn fst $ map (fmapFst getDomainComponents) servers
+    sortedServers = sortOn fst $ map (fmapFst getDomainComponents) servers
 
     go [] = DomainRoute Nothing Nothing
     go lst = DomainRoute node childs
@@ -52,12 +52,12 @@ queryDomainRoute allowPrefix dr domain = go dr comps
   where
     comps = getDomainComponents domain
 
-    placePrefix a b       | not allowPrefix = b
+    placePrefix _ b       | not allowPrefix = b
     placePrefix a Nothing = a
     placePrefix _ b       = b
 
     go DomainRoute{..} [] = currentNode
-    go (DomainRoute node Nothing) (x:xs) = placePrefix node Nothing
+    go (DomainRoute node Nothing) _ = placePrefix node Nothing
     go (DomainRoute node (Just child)) (x:xs) = placePrefix node $ case HashMap.lookup x child of
         Nothing      -> Nothing
         Just subtree -> go subtree xs
