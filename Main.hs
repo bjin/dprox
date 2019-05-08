@@ -17,7 +17,6 @@ import           Network.Socket.ByteString (recvFrom, sendTo)
 import           System.Posix.User         (UserEntry (..),
                                             getUserEntryForName, setUserID)
 
-
 import           Config
 import           DomainRoute
 
@@ -93,7 +92,10 @@ setuid user = getUserEntryForName user >>= setUserID . userID
 main :: IO ()
 main = do
     (GlobalConfig{..}, conf) <- getConfig
-    let server  = [(fromMaybe "" mDomain, (ip, fromMaybe 53 mPort)) | Server mDomain ip mPort <- conf]
+    let defaultPort = 53
+        fallbackServer = "8.8.8.8"
+
+        server  = [(fromMaybe "" mDomain, (ip, fromMaybe defaultPort mPort)) | Server mDomain ip mPort <- conf]
         address = [(domain, [ip]) | Address domain ip <- conf]
         bogusnx = [ip | BogusNX ip <- conf]
 
@@ -106,15 +108,15 @@ main = do
 
         resolvConf = DNS.defaultResolvConf { DNS.resolvCache = Just DNS.defaultCacheConf }
 
-        resolvConfs = (Nothing, resolvConf { DNS.resolvInfo = DNS.RCHostName "8.8.8.8" }) :
+        resolvConfs = (Nothing, resolvConf { DNS.resolvInfo = DNS.RCHostName fallbackServer }) :
                     [ (Just addr, resolvConf { DNS.resolvInfo = rc })
                     | addr@(host, port) <- S.toList serverAddressSet
-                    , let rc = if port == 53
+                    , let rc = if port == defaultPort
                                then DNS.RCHostName (show host)
                                else DNS.RCHostPort (show host) port
                     ]
 
-    sock <- bindPortUDP (fromIntegral $ fromMaybe 53 localPort) (fromMaybe "*6" listenAddress)
+    sock <- bindPortUDP (fromIntegral $ fromMaybe defaultPort localPort) (fromMaybe "*6" listenAddress)
     resolvSeeds <- forM resolvConfs $ \(k, v) -> do
         rs <- DNS.makeResolvSeed v
         return (k, rs)
