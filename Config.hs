@@ -131,7 +131,7 @@ plainOption = (++) <$> many server <*> ((++) <$> many address <*> many bogusnx)
     server = option (attoparsecReader serverValue)
         ( long "server"
        <> short 'S'
-       <> metavar "[/domain/]ip"
+       <> metavar "[/domain/]ip[#port]"
        <> help "remote dns server ip")
 
     address = option (attoparsecReader addressValue)
