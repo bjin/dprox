@@ -1,3 +1,6 @@
+-- SPDX-License-Identifier: BSD-3-Clause
+--
+-- Copyright (C) 2019 Bin Jin. All Rights Reserved.
 {-# LANGUAGE RecordWildCards #-}
 module DomainRoute
 ( DomainRoute
