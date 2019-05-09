@@ -68,7 +68,7 @@ handleServer route resolvers qd qt = resolver qd qt
 
 handleAddress :: DomainRoute [IP] -> Resolver -> Resolver
 handleAddress route resolver qd qt =
-    if null userDefined then resolver qd qt else return (Right userDefined)
+    if null ips then resolver qd qt else return (Right userDefined)
   where
     ips = fromMaybe [] $ getDomainRouteExact route qd
     ipv4 = [DNS.RD_A    ipv4addr | IPv4 ipv4addr <- ips]
