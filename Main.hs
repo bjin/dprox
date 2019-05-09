@@ -36,13 +36,16 @@ processQuery resolver (DNS.Question qd qt) = handle handler $ do
     wrapper rdata = DNS.ResourceRecord qd (getType rdata) DNS.classIN 233 rdata
 
     getType :: DNS.RData -> DNS.TYPE
-    getType (DNS.RD_A _)     = DNS.A
-    getType (DNS.RD_NS _)    = DNS.NS
-    getType (DNS.RD_CNAME _) = DNS.CNAME
-    getType (DNS.RD_MX _ _)  = DNS.MX
-    getType (DNS.RD_TXT _)   = DNS.TXT
-    getType (DNS.RD_AAAA _)  = DNS.AAAA
-    getType _                = qt
+    getType (DNS.RD_A _)               = DNS.A
+    getType (DNS.RD_NS _)              = DNS.NS
+    getType (DNS.RD_CNAME _)           = DNS.CNAME
+    getType (DNS.RD_SOA _ _ _ _ _ _ _) = DNS.SOA
+    getType (DNS.RD_NULL)              = DNS.NULL
+    getType (DNS.RD_PTR _)             = DNS.PTR
+    getType (DNS.RD_MX _ _)            = DNS.MX
+    getType (DNS.RD_TXT _)             = DNS.TXT
+    getType (DNS.RD_AAAA _)            = DNS.AAAA
+    getType _                          = qt
 
 processDNS :: Resolver -> ByteString -> IO (Either DNS.DNSError ByteString)
 processDNS resolver bs
