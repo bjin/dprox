@@ -22,6 +22,12 @@ dependencies:
 - unix
 - unordered-containers
 
+flags:
+  static:
+    description: Enable static build
+    manual: true
+    default: false
+
 executables:
   dprox:
     main:                Main.hs
@@ -35,6 +41,9 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    when:
+    - condition: flag(static)
+      ghc-options: -optl-static
 
 tests:
   dprox-test:
