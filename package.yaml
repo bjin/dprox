@@ -28,6 +28,13 @@ flags:
     manual: true
     default: false
 
+ghc-options:
+- -Wall
+- -O2
+- -threaded
+- -rtsopts
+- -with-rtsopts=-N
+
 executables:
   dprox:
     main:                Main.hs
@@ -35,12 +42,6 @@ executables:
     other-modules:
     - Config
     - DomainRoute
-    ghc-options:
-    - -Wall
-    - -O2
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
     when:
     - condition: flag(static)
       ghc-options: -optl-static
@@ -51,11 +52,5 @@ tests:
     source-dirs:         .
     other-modules:
     - DomainRoute
-    ghc-options:
-    - -Wall
-    - -O2
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
     dependencies:
     - hspec
