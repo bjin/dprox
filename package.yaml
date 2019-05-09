@@ -9,9 +9,6 @@ copyright:           "2019 Bin Jin"
 synopsis:            a simple DNS proxy server
 category:            DNS
 
-extra-source-files:
-- dprox.service
-
 dependencies:
 - attoparsec
 - base >= 4.7 && < 5
