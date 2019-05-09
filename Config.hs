@@ -18,8 +18,8 @@ import           Data.IP                          (IP (..))
 import           Data.Maybe                       (catMaybes)
 import           Data.Streaming.Network           (HostPreference)
 import           Data.String                      (fromString)
-import           Network.Socket                   (PortNumber)
 import qualified Network.DNS                      as DNS
+import           Network.Socket                   (PortNumber)
 import           Options.Applicative
 import           Text.Read                        (readMaybe)
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Main where
 
 import           Control.Concurrent        (forkIO)
@@ -14,8 +14,8 @@ import qualified Data.Set                  as S
 import           Data.Streaming.Network    (bindPortUDP)
 import qualified Network.DNS               as DNS
 import           Network.Socket.ByteString (recvFrom, sendTo)
-import           System.Posix.User         (UserEntry (..),
-                                            getUserEntryForName, setUserID)
+import           System.Posix.User         (UserEntry (..), getUserEntryForName,
+                                            setUserID)
 
 import           Config
 import           DomainRoute
