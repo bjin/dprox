@@ -67,10 +67,10 @@ processDNS resolver bs
         q <- DNS.decode bs
         if DNS.qOrR (DNS.flags (DNS.header q)) == DNS.QR_Query then return q else Left DNS.FormatError
 
-handleServer :: DomainRoute (IP, PortNumber) -> M.Map (Maybe (IP, PortNumber)) Resolver -> Resolver
-handleServer route resolvers qd qt = resolver qd qt
+handleServer :: DomainRoute Resolver -> Resolver
+handleServer route qd = resolver qd
   where
-    resolver = resolvers ! getDomainRouteByPrefix route qd
+    resolver = fromMaybe (error "handleServer: internal error") (getDomainRouteByPrefix route qd)
 
 handleAddress :: DomainRoute [IP] -> Resolver -> Resolver
 handleAddress route resolver qd qt =
@@ -99,9 +99,11 @@ main :: IO ()
 main = do
     (GlobalConfig{..}, conf) <- getConfig
     let defaultPort = 53
-        fallbackServer = "8.8.8.8"
+        fallbackServer = Server Nothing "8.8.8.8" Nothing
 
-        server  = [(fromMaybe "" mDomain, (ip, fromMaybe defaultPort mPort)) | Server mDomain ip mPort <- conf]
+        server  = [ (fromMaybe "" mDomain, (ip, fromMaybe defaultPort mPort))
+                  | Server mDomain ip mPort <- fallbackServer : conf
+                  ]
         address = [(domain, [ip]) | Address domain ip <- conf]
         bogusnx = [ip | BogusNX ip <- conf]
 
@@ -112,15 +114,16 @@ main = do
 
         bogusnxSet = S.fromList bogusnx
 
-        resolvConf = DNS.defaultResolvConf { DNS.resolvCache = Just DNS.defaultCacheConf }
-
-        resolvConfs = (Nothing, resolvConf { DNS.resolvInfo = DNS.RCHostName fallbackServer }) :
-                    [ (Just addr, resolvConf { DNS.resolvInfo = rc })
-                    | addr@(host, port) <- S.toList serverAddressSet
-                    , let rc = if port == defaultPort
-                               then DNS.RCHostName (show host)
-                               else DNS.RCHostPort (show host) port
-                    ]
+        resolvConfs = [ (addr, rc)
+                      | addr@(host, port) <- S.toList serverAddressSet
+                      , let rsinfo = if port == defaultPort
+                                then DNS.RCHostName (show host)
+                                else DNS.RCHostPort (show host) port
+                      , let rc = DNS.defaultResolvConf {
+                            DNS.resolvCache = Just DNS.defaultCacheConf,
+                            DNS.resolvInfo = rsinfo
+                        }
+                      ]
 
     sock <- bindPortUDP (fromIntegral $ fromMaybe defaultPort localPort) (fromMaybe "*6" listenAddress)
     resolvSeeds <- forM resolvConfs $ \(k, v) -> do
@@ -139,8 +142,9 @@ main = do
 
         createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)
-        createResolvers [] m = let resolver = handleBogusNX bogusnxSet $
+        createResolvers [] m = let serverRoute' = fmap (m!) serverRoute
+                                   resolver = handleBogusNX bogusnxSet $
                                               handleAddress addressRoute $
-                                              handleServer serverRoute m
+                                              handleServer serverRoute'
                                in processWithResolver resolver
     createResolvers resolvSeeds M.empty
