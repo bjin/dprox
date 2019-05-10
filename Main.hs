@@ -7,7 +7,7 @@ module Main where
 
 import           Control.Concurrent        (forkIO)
 import           Control.Exception         (SomeException, handle)
-import           Control.Monad             (forM, forever, void)
+import           Control.Monad             (forM, forever)
 import           Data.ByteString           (ByteString)
 import qualified Data.Foldable             as F
 import           Data.Map                  ((!))
@@ -39,16 +39,16 @@ processQuery resolver (DNS.Question qd qt) = handle handler $ do
     wrapper rdata = DNS.ResourceRecord qd (getType rdata) DNS.classIN 233 rdata
 
     getType :: DNS.RData -> DNS.TYPE
-    getType (DNS.RD_A _)               = DNS.A
-    getType (DNS.RD_NS _)              = DNS.NS
-    getType (DNS.RD_CNAME _)           = DNS.CNAME
-    getType (DNS.RD_SOA _ _ _ _ _ _ _) = DNS.SOA
-    getType (DNS.RD_NULL)              = DNS.NULL
-    getType (DNS.RD_PTR _)             = DNS.PTR
-    getType (DNS.RD_MX _ _)            = DNS.MX
-    getType (DNS.RD_TXT _)             = DNS.TXT
-    getType (DNS.RD_AAAA _)            = DNS.AAAA
-    getType _                          = qt
+    getType DNS.RD_A{}     = DNS.A
+    getType DNS.RD_NS{}    = DNS.NS
+    getType DNS.RD_CNAME{} = DNS.CNAME
+    getType DNS.RD_SOA{}   = DNS.SOA
+    getType DNS.RD_NULL{}  = DNS.NULL
+    getType DNS.RD_PTR{}   = DNS.PTR
+    getType DNS.RD_MX{}    = DNS.MX
+    getType DNS.RD_TXT{}   = DNS.TXT
+    getType DNS.RD_AAAA{}  = DNS.AAAA
+    getType _              = qt
 
 processDNS :: Resolver -> ByteString -> IO (Either DNS.DNSError ByteString)
 processDNS resolver bs
@@ -136,9 +136,7 @@ main = do
             (bs, addr) <- recvFrom sock (fromIntegral DNS.maxUdpSize)
             forkIO $ do
                 resp <- processDNS resolver bs
-                case resp of
-                    Left _      -> return ()
-                    Right resp' -> void $ sendTo sock resp' addr
+                F.forM_ resp $ \resp' -> sendTo sock resp' addr
 
         createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)
