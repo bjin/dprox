@@ -48,5 +48,5 @@ main = hspec $ do
         it "handles negative samples" $ forM_ ["", "net", "com", "chn2.net"] $ \domain ->
             getDomainRouteByPrefix dr1 domain `shouldBe` Nothing
 
-        it "handles the longest match" $ forM_ [("c.d.red.com", 1), ("www.a.b.c.d.red.com", 5)] $ \(domain, ans) ->
+        it "handles the longest match" $ forM_ [("c.d.red.com", query "red.com"), ("www.a.b.c.d.red.com", query "a.b.c.d.red.com")] $ \(domain, ans) ->
             getDomainRouteByPrefix dr1 domain `shouldBe` Just ans
