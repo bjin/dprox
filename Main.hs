@@ -76,7 +76,7 @@ handleAddress :: DomainRoute [IP] -> Resolver -> Resolver
 handleAddress route resolver qd qt =
     if null ips then resolver qd qt else return (Right userDefined)
   where
-    ips = fromMaybe [] $ getDomainRouteExact route qd
+    ips = fromMaybe [] $ getDomainRouteByPrefix route qd
     ipv4 = [DNS.RD_A    ipv4addr | IPv4 ipv4addr <- ips]
     ipv6 = [DNS.RD_AAAA ipv6addr | IPv6 ipv6addr <- ips]
 
