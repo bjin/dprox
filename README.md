@@ -21,3 +21,7 @@ Use `dprox --help` to list those options. A [systemd unit file](https://github.c
 ### Known Issue
 
 * `dprox` has fairly large memory footprint at the moment. Over 100MB for current `dnsmasq-china-list`.
+
+### License
+
+`dprox` is licensed under the BSD3 license. See LICENSE file for details.
