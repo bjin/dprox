@@ -1,13 +1,19 @@
 name:                dprox
-version:             0.0.1.0
+version:             0.1.0
 github:              "bjin/dprox"
 license:             BSD3
 author:              "Bin Jin"
 maintainer:          "bjin@ctrl-d.org"
 copyright:           "2019 Bin Jin"
 
-synopsis:            a simple DNS proxy server
+synopsis:            a lightweight DNS proxy server
 category:            DNS
+
+description:
+  Please see the README on GitHub at <https://github.com/bjin/dprox#readme>
+
+extra-source-files:
+- README.md
 
 dependencies:
 - attoparsec
@@ -38,7 +44,8 @@ ghc-options:
 executables:
   dprox:
     main:                Main.hs
-    source-dirs:         .
+    source-dirs:
+    - src
     other-modules:
     - Config
     - DomainRoute
@@ -49,7 +56,9 @@ executables:
 tests:
   dprox-test:
     main:                Test.hs
-    source-dirs:         .
+    source-dirs:
+    - src
+    - test
     other-modules:
     - DomainRoute
     dependencies:
