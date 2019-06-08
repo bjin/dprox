@@ -1,14 +1,13 @@
 ## dprox
 
-dprox is a lightweight DNS proxy server. It's written as a drop-in replacement
-of dnsmasq to work with [dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list),
-while improving the lookup performance over large domain list.
-
 [![CircleCI](https://circleci.com/gh/bjin/dprox.svg?style=shield)](https://circleci.com/gh/bjin/dprox)
 [![Hackage](https://img.shields.io/hackage/v/dprox.svg)](https://hackage.haskell.org/package/dprox)
 ![Depends](https://img.shields.io/hackage-deps/v/dprox.svg)
 [![License](https://img.shields.io/github/license/bjin/dprox.svg)](https://github.com/bjin/dprox/blob/master/LICENSE)
 
+dprox is a lightweight DNS proxy server. It's written as a drop-in replacement
+of dnsmasq to work with [dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list),
+while improving the overall lookup performance over large domain list.
 
 ### Installation
 
@@ -20,7 +19,7 @@ stack install
 
 ### Usage
 
-Only a small subset of dnsmasq options are implemented, just barely enough to work with `dnsmasq-china-list`.
+Only a small subset of dnsmasq options are implemented at the moment, just barely enough to work with `dnsmasq-china-list`.
 
 Use `dprox --help` to list those options. A [systemd unit file](https://github.com/bjin/dprox/blob/master/systemd/dprox.service) is also provided for Linux user.
 
