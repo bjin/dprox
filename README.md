@@ -4,6 +4,12 @@ dprox is a lightweight DNS proxy server. It's written as a drop-in replacement
 of dnsmasq to work with [dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list),
 while improving the lookup performance over large domain list.
 
+[![CircleCI](https://circleci.com/gh/bjin/dprox.svg?style=shield)](https://circleci.com/gh/bjin/dprox)
+[![Hackage](https://img.shields.io/hackage/v/dprox.svg)](https://hackage.haskell.org/package/dprox)
+![Depends](https://img.shields.io/hackage-deps/v/dprox.svg)
+[![License](https://img.shields.io/github/license/bjin/dprox.svg)](https://github.com/bjin/dprox/blob/master/LICENSE)
+
+
 ### Installation
 
 Only Linux and macOS are supported. [stack](https://docs.haskellstack.org/en/stable/README/#how-to-install) is required to build `dprox`.
