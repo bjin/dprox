@@ -72,11 +72,15 @@ handleServer route qd = resolver qd
   where
     resolver = fromMaybe (error "handleServer: internal error") (getDomainRouteByPrefix route qd)
 
-handleAddress :: DomainRoute [IP] -> Resolver -> Resolver
-handleAddress route resolver qd qt =
+handleAddressAndHosts :: DomainRoute [IP] -> DomainRoute [IP] -> Resolver -> Resolver
+handleAddressAndHosts address hosts resolver qd qt =
     if null ips then resolver qd qt else return (Right userDefined)
   where
-    ips = fromMaybe [] $ getDomainRouteByPrefix route qd
+    ips1 = fromMaybe [] $ getDomainRouteByPrefix address qd
+    ips2 = fromMaybe [] $ getDomainRouteExact hosts qd
+    ips | null ips2 = ips1
+        | otherwise = ips2
+
     ipv4 = [DNS.RD_A    ipv4addr | IPv4 ipv4addr <- ips]
     ipv6 = [DNS.RD_AAAA ipv6addr | IPv6 ipv6addr <- ips]
 
@@ -105,12 +109,14 @@ main = do
                   | Server mDomain ip mPort <- fallbackServer : conf
                   ]
         address = [(domain, [ip]) | Address domain ip <- conf]
+        hosts = [(domain, [ip]) | Hosts domain ip <- conf]
         bogusnx = [ip | BogusNX ip <- conf]
 
         serverRoute = newDomainRoute (flip const) server
         serverAddressSet = S.fromList $ F.toList serverRoute
 
         addressRoute = newDomainRoute (++) address
+        hostsRoute = newDomainRoute (++) hosts
 
         bogusnxSet = S.fromList bogusnx
 
@@ -142,7 +148,7 @@ main = do
             createResolvers xs (M.insert k (DNS.lookup rs) m)
         createResolvers [] m = let serverRoute' = fmap (m!) serverRoute
                                    resolver = handleBogusNX bogusnxSet $
-                                              handleAddress addressRoute $
+                                              handleAddressAndHosts addressRoute hostsRoute $
                                               handleServer serverRoute'
                                in processWithResolver resolver
     createResolvers resolvSeeds M.empty

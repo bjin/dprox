@@ -34,19 +34,23 @@ data GlobalConfig = GlobalConfig
 
 data Config = Server (Maybe DNS.Domain) IP (Maybe PortNumber)
             | Address DNS.Domain IP
+            | Hosts DNS.Domain IP
             | BogusNX IP
     deriving (Eq, Show)
 
 getConfig :: IO (GlobalConfig, [Config])
 getConfig = do
-    (globalConfigs, configFiles, confs) <- execParser opts
-    confs' <- concat <$> mapM readConfigFromFile configFiles
-    return (globalConfigs, confs' ++ confs)
+    (globalConfigs, configFiles, hostsFiles, confs) <- execParser opts
+    confs1 <- concat <$> mapM readConfigFromFile configFiles
+    confs2 <- concat <$> mapM readHostsFromFile hostsFiles
+    return (globalConfigs, confs1 ++ confs2 ++ confs)
   where
-    opts = info ((,,) <$> globalOption <*> configFileOption <*> plainOption <**> helper)
+    opts = info ((,,,) <$> globalOption <*> configFileOption
+                       <*> hostsFilesOption <*> plainOption <**> helper)
       ( fullDesc <> progDesc "a simple DNS proxy server")
 
     readConfigFromFile file = handle handler (parseConfigFile <$> BS.readFile file)
+    readHostsFromFile file = handle handler (parseHostsFile <$> BS.readFile file)
 
     handler :: SomeException -> IO [Config]
     handler _ = return []
@@ -56,15 +60,7 @@ parseConfigFile bs = case P.parseOnly parseFile bs of
     Left msg -> error msg
     Right r  -> r
   where
-    skipSpaceTab = P.skipWhile P8.isHorizontalSpace
-
-    parseFile = catMaybes <$> P.many' parseLine
-
-    parseLine = do
-        eof <- P.atEnd
-        when eof $ fail "eof reached"
-        skipSpaceTab
-        (Just <$> parseConfig) <|> skipLine
+    parseFile = catMaybes <$> P.many' (parseLine parseConfig)
 
     parseConfig =
         parsePair "server" serverValue <|>
@@ -77,13 +73,37 @@ parseConfigFile bs = case P.parseOnly parseFile bs of
         _ <- P8.char '='
         skipSpaceTab
         res <- optionValue
-        _ <- skipLine
+        skipLine
         return res
 
-    skipLine = do
-        P.skipWhile (not . P8.isEndOfLine)
-        P.skipWhile P8.isEndOfLine
-        return Nothing
+parseHostsFile :: BS.ByteString -> [Config]
+parseHostsFile bs = case P.parseOnly parseFile bs of
+    Left msg -> error msg
+    Right r  -> r
+  where
+    parseFile = catMaybes <$> P.many' (parseLine parseHosts)
+
+    parseHosts = do
+        parsedIP <- ip
+        skipSpaceTab
+        parsedDomain <- domain
+        skipLine
+        return (Hosts parsedDomain parsedIP)
+
+parseLine :: P.Parser a -> P.Parser (Maybe a)
+parseLine parser = do
+    eof <- P.atEnd
+    when eof $ fail "eof reached"
+    skipSpaceTab
+    (Just <$> parser) <|> (skipLine >> return Nothing)
+
+skipSpaceTab :: P.Parser ()
+skipSpaceTab = P.skipWhile P8.isHorizontalSpace
+
+skipLine :: P.Parser ()
+skipLine = do
+    P.skipWhile (not . P8.isEndOfLine)
+    P.skipWhile P8.isEndOfLine
 
 domain :: P.Parser DNS.Domain
 domain = P8.takeWhile1 (P8.inClass "-.a-zA-Z0-9") <?> "domain name"
@@ -127,6 +147,23 @@ configFileOption = many $ strOption
    <> short 'C'
    <> metavar "path/to/dprox.conf"
    <> help "configure file to read")
+
+hostsFilesOption :: Parser [FilePath]
+hostsFilesOption = combine <$> noHostsOption <*> many newHostsOption
+  where
+    combine False newHosts = "/etc/hosts" : newHosts
+    combine True newHosts = newHosts
+
+    newHostsOption = strOption
+        ( long "addn-hosts"
+       <> short 'H'
+       <> metavar "path/to/hosts"
+       <> help "additional hosts file to read (other than /etc/hosts)")
+
+    noHostsOption = switch
+        ( long "no-hosts"
+       <> short 'h'
+       <> help "Don't read /etc/hosts")
 
 plainOption :: Parser [Config]
 plainOption = (++) <$> many server <*> ((++) <$> many address <*> many bogusnx)
