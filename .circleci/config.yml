@@ -9,7 +9,7 @@ jobs:
           # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
           name: Restore Cached Dependencies
           keys:
-            - cci-dprox-v1-{{ checksum "package.yaml" }}-{{ checksum "stack.yaml" }}
+            - cci-dprox-v2-{{ checksum "stack.yaml" }}
       - run:
           name: Resolve/Update Dependencies
           command: stack setup
@@ -21,7 +21,7 @@ jobs:
           command: stack test
       - save_cache:
           name: Cache Dependencies
-          key: cci-dprox-v1-{{ checksum "package.yaml" }}-{{ checksum "stack.yaml" }}
+          key: cci-dprox-v2-{{ checksum "stack.yaml" }}
           paths:
             - "/root/.stack"
             - ".stack-work"
