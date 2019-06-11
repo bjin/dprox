@@ -47,7 +47,7 @@ getConfig = do
   where
     opts = info ((,,,) <$> globalOption <*> configFileOption
                        <*> hostsFilesOption <*> plainOption <**> helper)
-      ( fullDesc <> progDesc "a simple DNS proxy server")
+      ( fullDesc <> progDesc "a lightweight DNS proxy server, supports a small subset of dnsmasq options")
 
     readConfigFromFile file = handle handler (parseConfigFile <$> BS.readFile file)
     readHostsFromFile file = handle handler (parseHostsFile <$> BS.readFile file)
@@ -126,27 +126,27 @@ globalOption = GlobalConfig <$> userOption
     userOption = optional $ strOption
         ( long "user"
        <> short 'u'
-       <> metavar "uid"
-       <> help "set user id")
+       <> metavar "<username>"
+       <> help "Specify the userid to which dprox will change after startup")
 
     portOption = optional $ option auto
         ( long "port"
        <> short 'p'
-       <> metavar "port"
-       <> help "listen on this port instead of 53")
+       <> metavar "<port>"
+       <> help "Listen on this port instead of 53")
 
     listenOption = optional $ fromString <$> strOption
         ( long "listen-address"
        <> short 'a'
-       <> metavar "ipaddr"
+       <> metavar "<ipaddr>"
        <> help "Listen on the given IP address")
 
 configFileOption :: Parser [FilePath]
 configFileOption = many $ strOption
     ( long "conf-file"
    <> short 'C'
-   <> metavar "path/to/dprox.conf"
-   <> help "configure file to read")
+   <> metavar "<file>"
+   <> help "Configure file to read")
 
 hostsFilesOption :: Parser [FilePath]
 hostsFilesOption = combine <$> noHostsOption <*> many newHostsOption
@@ -157,8 +157,8 @@ hostsFilesOption = combine <$> noHostsOption <*> many newHostsOption
     newHostsOption = strOption
         ( long "addn-hosts"
        <> short 'H'
-       <> metavar "path/to/hosts"
-       <> help "additional hosts file to read (other than /etc/hosts)")
+       <> metavar "<file>"
+       <> help "Additional hosts file to read other than /etc/hosts")
 
     noHostsOption = switch
         ( long "no-hosts"
@@ -171,20 +171,27 @@ plainOption = (++) <$> many server <*> ((++) <$> many address <*> many bogusnx)
     server = option (attoparsecReader serverValue)
         ( long "server"
        <> short 'S'
-       <> metavar "[/domain/]ip[#port]"
-       <> help "remote dns server ip")
+       <> metavar "[/<domain>/]<ipaddr>[#<port>]"
+       <> help serverMsg)
+
+    serverMsg = "Specify remote DNS server to use. " ++
+                "If multiple servers are specified, only the last one will be used. " ++
+                "If no server is specified, 8.8.8.8 will be used. " ++
+                "If <domain> is specified, queries matching this domain or its subdomains " ++
+                "will use use specified remote DNS server. " ++
+                "<port> can be used to specify alternative port for DNS server."
 
     address = option (attoparsecReader addressValue)
         ( long "address"
        <> short 'A'
-       <> metavar "/domain/ip"
-       <> help "specifiy ip for target domain")
+       <> metavar "[/<domain>/]<ipaddr>"
+       <> help "For DNS queries matching <domain> or its subdomains, replies <ipaddr> directly")
 
     bogusnx = option (attoparsecReader bogusNXValue)
         ( long "bogus-nxdomain"
        <> short 'B'
        <> metavar "ip"
-       <> help "specify ip for no such domain blacklist")
+       <> help "Transform replies which contain the IP address given into \"No such domain\" replies")
 
 attoparsecReader :: P.Parser a -> ReadM a
 attoparsecReader p = eitherReader (P.parseOnly (p <* P.endOfInput) . BS8.pack)

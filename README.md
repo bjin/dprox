@@ -7,23 +7,43 @@
 [![AUR](https://img.shields.io/aur/version/dprox.svg)](https://aur.archlinux.org/packages/dprox/)
 [![License](https://img.shields.io/github/license/bjin/dprox.svg)](https://github.com/bjin/dprox/blob/master/LICENSE)
 
-dprox is a lightweight DNS proxy server. It's written as a drop-in replacement
+`dprox` is a lightweight DNS proxy server. It's written as a drop-in replacement
 of dnsmasq to work with [dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list),
 while improving the overall lookup performance over large domain list.
 
 ### Installation
 
-Only Linux and macOS are supported. [stack](https://docs.haskellstack.org/en/stable/README/#how-to-install) is required to build `dprox`.
+`dprox` should build and work on all unix-like OS with `ghc` support, but it's only
+been tested on Linux and macOS.
+
+While `dprox` can be built with `cabal` like most other Haskell packages, for a
+reliable compilation with pinned dependencies, [stack](https://docs.haskellstack.org/en/stable/README/#how-to-install) is generally recommended.
 
 ```sh
 stack install
 ```
 
+For Arch Linux users, an [AUR package](https://aur.archlinux.org/packages/dprox/) is also provided.
+
 ### Usage
 
-Only a small subset of dnsmasq options are implemented at the moment, just barely enough to work with `dnsmasq-china-list`.
+Only a small subset of dnsmasq options are implemented at the moment, just barely enough to work with `dnsmasq-china-list` and [hosts-blocklists](https://github.com/notracking/hosts-blocklists).
 
-Use `dprox --help` to list those options. A [systemd unit file](https://github.com/bjin/dprox/blob/master/systemd/dprox.service) is also provided for Linux user.
+Here is the list of implemented dnsmasq options (with `server`, `address` and `bogus-nxdomain` options allowed in configuration file):
+
+```
+-u, --user=<username>
+-p, --port=<port>
+-a, --listen-address=<ipaddr>
+-C, --conf-file=<file>
+-h, --no-hosts
+-H, --addn-hosts=<file>
+-S, --server=[/<domain>/]<ipaddr>[#<port>]
+-A, --address=[/<domain>/]<ipaddr>
+-B, --bogus-nxdomain=<ipaddr>
+```
+
+Use `dprox --help` for further details about usage. A [systemd unit file](https://github.com/bjin/dprox/blob/master/systemd/dprox.service) is also provided for Linux user, for easy deployment with `dnsmasq-china-list`.
 
 ### Known Issue
 
