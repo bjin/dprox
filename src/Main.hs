@@ -7,10 +7,9 @@ module Main where
 
 import           Control.Concurrent        (forkIO)
 import           Control.Exception         (SomeException, handle)
-import           Control.Monad             (forM, forever)
+import           Control.Monad             (forM, forever, join)
 import           Data.ByteString           (ByteString)
 import qualified Data.Foldable             as F
-import           Data.Map                  ((!))
 import qualified Data.Map                  as M
 import           Data.Maybe                (fromMaybe)
 import qualified Data.Set                  as S
@@ -67,10 +66,12 @@ processDNS resolver bs
         q <- DNS.decode bs
         if DNS.qOrR (DNS.flags (DNS.header q)) == DNS.QR_Query then return q else Left DNS.FormatError
 
-handleServer :: DomainRoute Resolver -> Resolver
-handleServer route qd = resolver qd
+handleServer :: DomainRoute (Maybe Resolver) -> Resolver
+handleServer route qd qt = case resolver of
+    Nothing        -> return (Left DNS.NameError)
+    Just resolver' -> resolver' qd qt
   where
-    resolver = fromMaybe (error "handleServer: internal error") (getDomainRouteByPrefix route qd)
+    resolver = join (getDomainRouteByPrefix route qd)
 
 handleAddressAndHosts :: DomainRoute [IP] -> DomainRoute [IP] -> Resolver -> Resolver
 handleAddressAndHosts address hosts resolver qd qt =
@@ -122,6 +123,7 @@ main = do
 
         resolvConfs = [ (addr, rc)
                       | addr@(host, port) <- S.toList serverAddressSet
+                      , host /= invalidIPAddress
                       , let rsinfo = if port == defaultPort
                                 then DNS.RCHostName (show host)
                                 else DNS.RCHostPort (show host) port
@@ -146,7 +148,7 @@ main = do
 
         createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)
-        createResolvers [] m = let serverRoute' = fmap (m!) serverRoute
+        createResolvers [] m = let serverRoute' = fmap (`M.lookup`m) serverRoute
                                    resolver = handleBogusNX bogusnxSet $
                                               handleAddressAndHosts addressRoute hostsRoute $
                                               handleServer serverRoute'

@@ -7,6 +7,7 @@ module Config
 , Config(..)
 , getConfig
 , IP(..)
+, invalidIPAddress
 , PortNumber
 ) where
 
@@ -18,7 +19,8 @@ import qualified Data.Attoparsec.ByteString.Char8 as P8
 import qualified Data.ByteString                  as BS
 import qualified Data.ByteString.Char8            as BS8
 import           Data.IP                          (IP (..))
-import           Data.Maybe                       (catMaybes)
+import           Data.Maybe                       (catMaybes, fromMaybe,
+                                                   isNothing)
 import           Data.Streaming.Network           (HostPreference)
 import           Data.String                      (fromString)
 import qualified Network.DNS                      as DNS
@@ -64,6 +66,7 @@ parseConfigFile bs = case P.parseOnly parseFile bs of
 
     parseConfig =
         parsePair "server" serverValue <|>
+        parsePair "local" serverValue <|>
         parsePair "address" addressValue <|>
         parsePair "bogus-nxdomain" bogusNXValue
 
@@ -115,6 +118,9 @@ ip = (<?> "IP address") $ do
         Nothing     -> fail ("invalid IP address: " ++ ipstr)
         Just ipaddr -> return ipaddr
 
+invalidIPAddress :: IP
+invalidIPAddress = "::"
+
 port :: P.Parser PortNumber
 port = read . BS8.unpack <$> P.takeWhile1 P8.isDigit_w8 <?> "Port Number"
 
@@ -152,7 +158,7 @@ hostsFilesOption :: Parser [FilePath]
 hostsFilesOption = combine <$> noHostsOption <*> many newHostsOption
   where
     combine False newHosts = "/etc/hosts" : newHosts
-    combine True newHosts = newHosts
+    combine True newHosts  = newHosts
 
     newHostsOption = strOption
         ( long "addn-hosts"
@@ -170,6 +176,7 @@ plainOption = (++) <$> many server <*> ((++) <$> many address <*> many bogusnx)
   where
     server = option (attoparsecReader serverValue)
         ( long "server"
+       <> long "local"
        <> short 'S'
        <> metavar "[/<domain>/]<ipaddr>[#<port>]"
        <> help serverMsg)
@@ -177,8 +184,8 @@ plainOption = (++) <$> many server <*> ((++) <$> many address <*> many bogusnx)
     serverMsg = "Specify remote DNS server to use. " ++
                 "If multiple servers are specified, only the last one will be used. " ++
                 "If no server is specified, 8.8.8.8 will be used. " ++
-                "If <domain> is specified, queries matching this domain or its subdomains " ++
-                "will use use specified remote DNS server. " ++
+                "If <domain> is specified, queries matching this domain or its subdomains will use use specified remote DNS server. " ++
+                "If <ipaddr> is empty, queries matching specified domains will be handled by local hosts file only. " ++
                 "<port> can be used to specify alternative port for DNS server."
 
     address = option (attoparsecReader addressValue)
@@ -199,9 +206,10 @@ attoparsecReader p = eitherReader (P.parseOnly (p <* P.endOfInput) . BS8.pack)
 serverValue :: P.Parser Config
 serverValue = do
     parsedDomain <- P.option Nothing (Just <$> (P8.char '/' *> domain <* P8.char '/'))
-    parsedIP <- ip
+    parsedIP <- P.option Nothing (Just <$> ip)
+    when (isNothing parsedDomain && isNothing parsedIP) $ fail "at least one of <domain> and <ip> must be specified"
     parsedPort <- P.option Nothing (Just <$> (P8.char '#' *> port))
-    return (Server parsedDomain parsedIP parsedPort)
+    return (Server parsedDomain (fromMaybe invalidIPAddress parsedIP) parsedPort)
 
 addressValue :: P.Parser Config
 addressValue = Address <$> (P8.char '/' *> domain <* P8.char '/') <*> ip

@@ -31,7 +31,7 @@ For Arch Linux users, an [AUR package](https://aur.archlinux.org/packages/dprox/
 
 Only a small subset of dnsmasq options are implemented at the moment, just barely enough to work with `dnsmasq-china-list` and [hosts-blocklists](https://github.com/notracking/hosts-blocklists).
 
-Here is the list of implemented dnsmasq options (with `server`, `address` and `bogus-nxdomain` options allowed in configuration file):
+Here is the list of implemented dnsmasq options (with `server`, `local`, `address` and `bogus-nxdomain` options allowed in configuration file):
 
 ```
 -u, --user=<username>
@@ -40,7 +40,7 @@ Here is the list of implemented dnsmasq options (with `server`, `address` and `b
 -C, --conf-file=<file>
 -h, --no-hosts
 -H, --addn-hosts=<file>
--S, --server=[/<domain>/]<ipaddr>[#<port>]
+-S, --local, --server=[/<domain>/]<ipaddr>[#<port>]
 -A, --address=[/<domain>/]<ipaddr>
 -B, --bogus-nxdomain=<ipaddr>
 ```
