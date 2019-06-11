@@ -7,19 +7,21 @@
 [![AUR](https://img.shields.io/aur/version/dprox.svg)](https://aur.archlinux.org/packages/dprox/)
 [![License](https://img.shields.io/github/license/bjin/dprox.svg)](https://github.com/bjin/dprox/blob/master/LICENSE)
 
-`dprox` is a lightweight DNS proxy server. It's written as a drop-in replacement
-of dnsmasq to work with [dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list),
+`dprox` is a lightweight DNS proxy server. It's created as a drop-in replacement
+of [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) to work with
+[dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list),
 while improving the overall lookup performance over large domain list.
 
 ### Installation
 
-`dprox` should build and work on all unix-like OS with `ghc` support, but it's only
+`dprox` should build and work on all unix-like OS with [ghc](https://www.haskell.org/ghc/) support, but it's only
 been tested on Linux and macOS.
 
-While `dprox` can be built with `cabal` like most other Haskell packages, for a
+While `dprox` can be built with [cabal](https://www.haskell.org/cabal/) like any other Hackage packages, for a
 reliable compilation with pinned dependencies, [stack](https://docs.haskellstack.org/en/stable/README/#how-to-install) is generally recommended.
 
 ```sh
+stack setup
 stack install
 ```
 
@@ -46,14 +48,14 @@ Here is the list of implemented dnsmasq options (with `server`, `address` and `b
 Use `dprox --help` or [dnsmasq manpage](http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) for further details about these options.
 But be aware that there might be minor differences on some options like `--server`.
 
-To use `dprox` with `dnsmasq-china-list`, with `8.8.4.4` as the remote DNS server
+To use `dprox` with `dnsmasq-china-list`, with "8.8.4.4" as the remote DNS server
 (systemd user can also use [this unit file](https://github.com/bjin/dprox/blob/master/systemd/dprox.service)):
 
 ```sh
 dprox -C /etc/dnsmasq.d/accelerated-domains.china.conf -C /etc/dnsmasq.d/bogus-nxdomain.china.conf -S 8.8.4.4
 ```
 
-To use `dprox` with `hosts-blocklists` and the default remote DNS server (`8.8.8.8`), without loading system hosts file:
+To use `dprox` with `hosts-blocklists` and the default remote DNS server ("8.8.8.8"), without loading system hosts file:
 
 ```sh
 dprox -C /opt/hosts-blocklists/domains.txt -H /opt/hosts-blocklists/hostnames.txt -h
