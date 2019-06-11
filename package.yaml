@@ -17,17 +17,17 @@ extra-source-files:
 - systemd/dprox.service
 
 dependencies:
-- attoparsec
-- base >= 4.7 && < 5
-- bytestring
-- containers
+- attoparsec >= 0.13
+- base >= 4.12 && < 5
+- bytestring >= 0.10
+- containers >= 0.6
 - dns >= 3.0.4
-- iproute
-- network
-- optparse-applicative
-- streaming-commons
-- unix
-- unordered-containers
+- iproute >= 1.7
+- network >= 2.8 && < 3
+- optparse-applicative >= 0.14
+- streaming-commons >= 0.2
+- unix >= 2.7
+- unordered-containers >= 0.2
 
 flags:
   static:
