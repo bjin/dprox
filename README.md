@@ -43,7 +43,21 @@ Here is the list of implemented dnsmasq options (with `server`, `address` and `b
 -B, --bogus-nxdomain=<ipaddr>
 ```
 
-Use `dprox --help` for further details about usage. A [systemd unit file](https://github.com/bjin/dprox/blob/master/systemd/dprox.service) is also provided for Linux user, for easy deployment with `dnsmasq-china-list`.
+Use `dprox --help` or [dnsmasq manpage](http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) for further details about these options.
+But be aware that there might be minor differences on some options like `--server`.
+
+To use `dprox` with `dnsmasq-china-list`, with `8.8.4.4` as the remote DNS server
+(systemd user can also use [this unit file](https://github.com/bjin/dprox/blob/master/systemd/dprox.service)):
+
+```sh
+dprox -C /etc/dnsmasq.d/accelerated-domains.china.conf -C /etc/dnsmasq.d/bogus-nxdomain.china.conf -S 8.8.4.4
+```
+
+To use `dprox` with `hosts-blocklists` and the default remote DNS server (`8.8.8.8`), without loading system hosts file:
+
+```sh
+dprox -C /opt/hosts-blocklists/domains.txt -H /opt/hosts-blocklists/hostnames.txt -h
+```
 
 ### Known Issue
 
