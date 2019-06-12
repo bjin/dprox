@@ -23,7 +23,7 @@ dependencies:
 - containers >= 0.6
 - dns >= 3.0.4
 - iproute >= 1.7
-- network >= 2.8 && < 3
+- network >= 2.8
 - optparse-applicative >= 0.14
 - streaming-commons >= 0.2
 - unix >= 2.7
