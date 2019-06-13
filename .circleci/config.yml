@@ -2,26 +2,29 @@ version: 2.1
 jobs:
   build:
     docker:
-      - image: fpco/stack-build:lts
+      - image: bjin/stack-docker:8.6.5
     steps:
       - checkout
       - restore_cache:
           name: Restore Cached Dependencies
           keys:
-            - cci-dprox-v3-{{ checksum "stack.yaml" }}-{{ checksum "package.yaml" }}
-            - cci-dprox-v3-{{ checksum "stack.yaml" }}
-      - run:
-          name: Resolve/Update Dependencies
-          command: stack setup
+            - cci-dprox-v4-{{ checksum "stack.yaml" }}-{{ checksum "package.yaml" }}
+            - cci-dprox-v4-{{ checksum "stack.yaml" }}
       - run:
           name: Install executable
-          command: stack install
+          command: stack install --flag dprox:static
       - run:
           name: Run tests
-          command: stack test
+          command: stack test --flag dprox:static
+      - run:
+          name: Package executable
+          command: mkdir ~/release && tar czvf ~/release/dprox-$(stack query locals dprox version)-$(git rev-parse --short HEAD)-linux-x86_64-static.tar.gz -C ~/.local/bin dprox
+      - store_artifacts:
+          path: ~/release
+          destination: release
       - save_cache:
           name: Cache Dependencies
-          key: cci-dprox-v3-{{ checksum "stack.yaml" }}-{{ checksum "package.yaml" }}
+          key: cci-dprox-v4-{{ checksum "stack.yaml" }}-{{ checksum "package.yaml" }}
           paths:
-            - "/root/.stack"
-            - ".stack-work"
+            - ~/.stack
+            - .stack-work

@@ -42,6 +42,10 @@ ghc-options:
 - -rtsopts
 - -with-rtsopts=-N
 
+when:
+- condition: flag(static)
+  ghc-options: -optl-static
+
 executables:
   dprox:
     main:                Main.hs
@@ -50,9 +54,6 @@ executables:
     other-modules:
     - Config
     - DomainRoute
-    when:
-    - condition: flag(static)
-      ghc-options: -optl-static
 
 tests:
   dprox-test:
