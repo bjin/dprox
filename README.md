@@ -25,7 +25,8 @@ stack setup
 stack install
 ```
 
-For Arch Linux users, an [AUR package](https://aur.archlinux.org/packages/dprox/) is also provided.
+For Arch Linux users, an [AUR package](https://aur.archlinux.org/packages/dprox/) is provided.
+Alternatively, you also can use the statically linked binary for the [latest release](https://github.com/bjin/dprox/releases).
 
 ### Usage
 
