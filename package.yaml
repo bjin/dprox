@@ -54,6 +54,7 @@ executables:
     other-modules:
     - Config
     - DomainRoute
+    - Paths_dprox
 
 tests:
   dprox-test:

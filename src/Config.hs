@@ -23,10 +23,13 @@ import           Data.Maybe                       (catMaybes, fromMaybe,
                                                    isNothing)
 import           Data.Streaming.Network           (HostPreference)
 import           Data.String                      (fromString)
+import           Data.Version                     (showVersion)
 import qualified Network.DNS                      as DNS
 import           Network.Socket                   (PortNumber)
 import           Options.Applicative
 import           Text.Read                        (readMaybe)
+
+import           Paths_dprox                      (version)
 
 data GlobalConfig = GlobalConfig
     { setUser       :: Maybe String
@@ -48,8 +51,11 @@ getConfig = do
     return (globalConfigs, confs1 ++ confs2 ++ confs)
   where
     opts = info ((,,,) <$> globalOption <*> configFileOption
-                       <*> hostsFilesOption <*> plainOption <**> helper)
-      ( fullDesc <> progDesc "a lightweight DNS proxy server, supports a small subset of dnsmasq options")
+                       <*> hostsFilesOption <*> plainOption <**> ver <**> helper)
+      ( fullDesc <> progDesc desc )
+
+    desc = "a lightweight DNS proxy server, supports a small subset of dnsmasq options"
+    ver = infoOption (showVersion version) (long "version" <> help "show version")
 
     readConfigFromFile file = handle handler (parseConfigFile <$> BS.readFile file)
     readHostsFromFile file = handle handler (parseHostsFile <$> BS.readFile file)
