@@ -35,6 +35,8 @@ data GlobalConfig = GlobalConfig
     { setUser       :: Maybe String
     , localPort     :: Maybe PortNumber
     , listenAddress :: Maybe HostPreference
+    , cacheSize     :: Int
+    , cacheTTL      :: DNS.TTL
     } deriving (Eq, Show)
 
 data Config = Server (Maybe DNS.Domain) IP (Maybe PortNumber)
@@ -134,6 +136,8 @@ globalOption :: Parser GlobalConfig
 globalOption = GlobalConfig <$> userOption
                             <*> portOption
                             <*> listenOption
+                            <*> cacheOption
+                            <*> ttlOption
   where
     userOption = optional $ strOption
         ( long "user"
@@ -152,6 +156,18 @@ globalOption = GlobalConfig <$> userOption
        <> short 'a'
        <> metavar "<ipaddr>"
        <> help "Listen on the given IP address")
+
+    cacheOption = option auto
+        ( long "cache-size"
+       <> metavar "<integer>"
+       <> value 4096
+       <> help "Size of the cache in entries (default value: 4096), setting this to zero disables cache")
+
+    ttlOption = option auto
+        ( long "cache-ttl"
+       <> metavar "<seconds>"
+       <> value 233
+       <> help "Cache TTL in seconds (default value: 233)")
 
 configFileOption :: Parser [FilePath]
 configFileOption = many $ strOption

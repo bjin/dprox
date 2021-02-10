@@ -1,5 +1,5 @@
 name:                dprox
-version:             0.1.2.1
+version:             0.2
 github:              "bjin/dprox"
 license:             BSD3
 author:              "Bin Jin"
@@ -22,10 +22,13 @@ dependencies:
 - bytestring >= 0.10
 - containers >= 0.6
 - dns >= 3.0.4
+- hashable >= 1.2
 - iproute >= 1.7
 - network >= 2.8
 - optparse-applicative >= 0.14
+- psqueues >= 0.2
 - streaming-commons >= 0.2
+- time >= 1.8
 - unix >= 2.7
 - unordered-containers >= 0.2
 
@@ -54,6 +57,7 @@ executables:
     other-modules:
     - Config
     - DomainRoute
+    - LRU
     - Paths_dprox
 
 tests:

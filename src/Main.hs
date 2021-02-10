@@ -3,13 +3,15 @@
 -- Copyright (C) 2019 Bin Jin. All Rights Reserved.
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TupleSections     #-}
 module Main where
 
-import           Control.Concurrent        (forkIO)
+import           Control.Concurrent        (forkIO, threadDelay)
 import           Control.Exception         (SomeException, handle)
 import           Control.Monad             (forM, forever, join)
 import           Data.ByteString           (ByteString)
 import qualified Data.Foldable             as F
+import           Data.Hashable             (Hashable (..))
 import qualified Data.Map                  as M
 import           Data.Maybe                (fromMaybe)
 import qualified Data.Set                  as S
@@ -21,21 +23,26 @@ import           System.Posix.User         (UserEntry (..), getUserEntryForName,
 
 import           Config
 import           DomainRoute
+import           LRU
+
+instance Hashable DNS.TYPE where
+    hashWithSalt s = hashWithSalt s . DNS.fromTYPE
 
 type Resolver = DNS.Domain -> DNS.TYPE -> IO (Either DNS.DNSError [DNS.RData])
+type CachedResolver = DNS.Domain -> DNS.TYPE -> IO (Either DNS.DNSError (DNS.TTL, [DNS.RData]))
 
-processQuery :: Resolver -> DNS.Question -> IO [DNS.ResourceRecord]
+processQuery :: CachedResolver -> DNS.Question -> IO [DNS.ResourceRecord]
 processQuery resolver (DNS.Question qd qt) = handle handler $ do
     res <- resolver qd qt
     case res of
-        Left _  -> return []
-        Right r -> return (map wrapper r)
+        Left _         -> return []
+        Right (ttl, r) -> return (map (wrapper ttl) r)
   where
     handler :: SomeException -> IO [DNS.ResourceRecord]
     handler _ = return []
 
-    wrapper :: DNS.RData -> DNS.ResourceRecord
-    wrapper rdata = DNS.ResourceRecord qd (getType rdata) DNS.classIN 233 rdata
+    wrapper :: DNS.TTL -> DNS.RData -> DNS.ResourceRecord
+    wrapper ttl rdata = DNS.ResourceRecord qd (getType rdata) DNS.classIN ttl rdata
 
     getType :: DNS.RData -> DNS.TYPE
     getType DNS.RD_A{}     = DNS.A
@@ -49,7 +56,7 @@ processQuery resolver (DNS.Question qd qt) = handle handler $ do
     getType DNS.RD_AAAA{}  = DNS.AAAA
     getType _              = qt
 
-processDNS :: Resolver -> ByteString -> IO (Either DNS.DNSError ByteString)
+processDNS :: CachedResolver -> ByteString -> IO (Either DNS.DNSError ByteString)
 processDNS resolver bs
     | Left e <- parse = return (Left e)
     | Right q <- parse = do
@@ -97,6 +104,27 @@ handleBogusNX blacklist resolver qd qt =
     isBlacklisted (DNS.RD_AAAA ipv6) = IPv6 ipv6 `S.member` blacklist
     isBlacklisted _                  = False
 
+makeResolverCache :: Int -> DNS.TTL -> IO (Resolver -> CachedResolver)
+makeResolverCache sz ttl | sz <= 0 = return $ \r qd qt -> fmap (ttl,) <$> r qd qt
+makeResolverCache sz ttl = do
+    cache <- newCache sz ttl
+    _ <- forkIO $ forever $ do
+        threadDelay (fromInteger (fromIntegral ttl * 1000000 `div` 3))
+        purgeCache cache
+    let process resolver qd qt = do
+            let k = (qd, qt)
+            res <- lookupCache k cache
+            case res of
+                Just (ttl', v) -> return (Right (max ttl' 3, v))
+                Nothing        -> do
+                    resolved <- resolver qd qt
+                    case resolved of
+                        Left  e -> return (Left e)
+                        Right v -> do
+                            updateCache k v cache
+                            return (Right (ttl, v))
+    return process
+
 setuid :: String -> IO ()
 setuid user = getUserEntryForName user >>= setUserID . userID
 
@@ -128,7 +156,7 @@ main = do
                                 then DNS.RCHostName (show host)
                                 else DNS.RCHostPort (show host) port
                       , let rc = DNS.defaultResolvConf {
-                            DNS.resolvCache = Just DNS.defaultCacheConf,
+                            DNS.resolvCache = Nothing,
                             DNS.resolvInfo = rsinfo
                         }
                       ]
@@ -140,6 +168,8 @@ main = do
 
     F.mapM_ setuid setUser
 
+    resolverCache <- makeResolverCache cacheSize cacheTTL
+
     let processWithResolver resolver = forever $ do
             (bs, addr) <- recvFrom sock (fromIntegral DNS.maxUdpSize)
             forkIO $ do
@@ -149,7 +179,8 @@ main = do
         createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)
         createResolvers [] m = let serverRoute' = fmap (`M.lookup`m) serverRoute
-                                   resolver = handleBogusNX bogusnxSet $
+                                   resolver = resolverCache $
+                                              handleBogusNX bogusnxSet $
                                               handleAddressAndHosts addressRoute hostsRoute $
                                               handleServer serverRoute'
                                in processWithResolver resolver
