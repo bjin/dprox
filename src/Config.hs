@@ -211,10 +211,10 @@ attoparsecReader p = eitherReader (P.parseOnly (p <* P.endOfInput) . BS8.pack)
 
 serverValue :: P.Parser Config
 serverValue = do
-    parsedDomain <- P.option Nothing (Just <$> (P8.char '/' *> domain <* P8.char '/'))
-    parsedIP <- P.option Nothing (Just <$> ip)
+    parsedDomain <- optional (P8.char '/' *> domain <* P8.char '/')
+    parsedIP <- optional ip
     when (isNothing parsedDomain && isNothing parsedIP) $ fail "at least one of <domain> and <ip> must be specified"
-    parsedPort <- P.option Nothing (Just <$> (P8.char '#' *> port))
+    parsedPort <- optional (P8.char '#' *> port)
     return (Server parsedDomain (fromMaybe invalidIPAddress parsedIP) parsedPort)
 
 addressValue :: P.Parser Config

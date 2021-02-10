@@ -113,7 +113,7 @@ main = do
         hosts = [(domain, [ip]) | Hosts domain ip <- conf]
         bogusnx = [ip | BogusNX ip <- conf]
 
-        serverRoute = newDomainRoute (flip const) server
+        serverRoute = newDomainRoute (const id) server
         serverAddressSet = S.fromList $ F.toList serverRoute
 
         addressRoute = newDomainRoute (++) address
