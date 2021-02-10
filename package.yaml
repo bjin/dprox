@@ -26,7 +26,7 @@ dependencies:
 - iproute >= 1.7
 - network >= 2.8
 - optparse-applicative >= 0.14
-- psqueues >= 0.2
+- psqueues >= 0.2.3
 - streaming-commons >= 0.2
 - time >= 1.8
 - unix >= 2.7
