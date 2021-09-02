@@ -17,6 +17,7 @@ main = hspec $ do
         build ds = [(domain, query domain) | domain <- ds]
         domains = ["cn", "chn.net", "red.com", "black.com", "www.red.com", "a.b.c.d.red.com"]
         dr1 = newDomainRoute const (build domains)
+        dr0 = newDomainRoute const (build ("" : domains))
 
     describe "newDomainRoute" $ do
         let dr2 = newDomainRoute const (build domains ++ build domains)
@@ -48,5 +49,9 @@ main = hspec $ do
         it "handles negative samples" $ forM_ ["", "net", "com", "chn2.net"] $ \domain ->
             getDomainRouteByPrefix dr1 domain `shouldBe` Nothing
 
+        it "handles root domain fallbacks" $ forM_ ["", "net", "com", "chn2.net"] $ \domain ->
+            getDomainRouteByPrefix dr0 domain `shouldBe` Just 0
+
         it "handles the longest match" $ forM_ [("c.d.red.com", query "red.com"), ("www.a.b.c.d.red.com", query "a.b.c.d.red.com")] $ \(domain, ans) ->
             getDomainRouteByPrefix dr1 domain `shouldBe` Just ans
+
