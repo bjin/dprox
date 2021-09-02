@@ -64,7 +64,7 @@ dprox -C /opt/hosts-blocklists/domains.txt -H /opt/hosts-blocklists/hostnames.tx
 
 ### Known Issue
 
-* `dprox` has fairly large memory footprint at the moment. Over 100MB for current `dnsmasq-china-list`.
+* `dprox` has fairly large memory footprint at the moment. About 85MB for current `dnsmasq-china-list`.
 
 ### License
 

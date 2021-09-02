@@ -1,5 +1,5 @@
 name:                dprox
-version:             0.2.0
+version:             0.3.0
 github:              "bjin/dprox"
 license:             BSD3
 author:              "Bin Jin"
@@ -20,7 +20,7 @@ dependencies:
 - attoparsec >= 0.13
 - base >= 4.12 && < 5
 - bytestring >= 0.10
-- bytestring-trie >= 0.2
+- bytestring-trie >= 0.2.4
 - containers >= 0.6
 - dns >= 3.0.4
 - hashable >= 1.2
