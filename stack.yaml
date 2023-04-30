@@ -1,9 +1,9 @@
-resolver: nightly-2021-09-02
+resolver: nightly-2023-04-28
 packages:
 - .
 extra-deps:
 - github: wrengr/bytestring-trie
-  commit: ca285ba2ec745f3ae7dff23c84e053a4f44e5e72 # pull request #12
+  commit: 804425aa9cf12a778d9139e1f671d99a5a5a366a
 nix:
   packages:
     - zlib
