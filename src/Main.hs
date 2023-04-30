@@ -106,7 +106,7 @@ handleBogusNX blacklist resolver qd qt =
     isBlacklisted (DNS.RD_AAAA ipv6) = IPv6 ipv6 `S.member` blacklist
     isBlacklisted _                  = False
 
-handleIPSet :: [IPMask] -> IPSetMatch -> Maybe Resolver -> Resolver -> Resolver
+handleIPSet :: [IPMask] -> IPSetMatch -> Maybe Resolver -> CachedResolver -> CachedResolver
 handleIPSet [] _ _ = id
 handleIPSet _ _ Nothing = id
 handleIPSet ipset match (Just ipsetResolver) = handleWithResolver
@@ -122,11 +122,11 @@ handleIPSet ipset match (Just ipsetResolver) = handleWithResolver
     handleWithResolver resolver qd qt = do
         res <- resolver qd qt
         case res of
-            Left _   -> return res
-            Right rs -> do
+            Left _        -> return res
+            Right (_, rs) -> do
                 let ipv4s = [ipv4 | DNS.RD_A ipv4 <- rs]
                 if not (null ipv4s) && check match ipv4s
-                  then ipsetResolver qd qt
+                  then fmap (1, ) <$> ipsetResolver qd qt
                   else return res
 
 makeResolverCache :: Int -> DNS.TTL -> IO (Resolver -> CachedResolver)
@@ -208,9 +208,9 @@ main = do
             createResolvers xs (M.insert k (DNS.lookup rs) m)
         createResolvers [] m = let serverRoute' = fmap (`M.lookup`m) serverRoute
                                    ipsetResolver = join $ fmap (`M.lookup`m) ipsetServerPort
-                                   resolver = resolverCache $
+                                   resolver = handleIPSet ipset ipsetMatch ipsetResolver $
+                                              resolverCache $
                                               handleAddressAndHosts addressRoute hostsRoute $
-                                              handleIPSet ipset ipsetMatch ipsetResolver $
                                               handleBogusNX bogusnxSet $
                                               handleServer serverRoute'
                                in processWithResolver resolver
