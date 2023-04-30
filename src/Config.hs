@@ -3,33 +3,32 @@
 -- Copyright (C) 2019 Bin Jin. All Rights Reserved.
 {-# LANGUAGE OverloadedStrings #-}
 module Config
-( GlobalConfig(..)
-, Config(..)
-, getConfig
-, IP(..)
-, invalidIPAddress
-, PortNumber
-) where
+  ( Config (..)
+  , GlobalConfig (..)
+  , IP (..)
+  , PortNumber
+  , getConfig
+  , invalidIPAddress
+  ) where
 
-import           Control.Exception                (SomeException, handle)
-import           Control.Monad                    (when)
-import           Data.Attoparsec.ByteString       ((<?>))
-import qualified Data.Attoparsec.ByteString       as P
-import qualified Data.Attoparsec.ByteString.Char8 as P8
-import qualified Data.ByteString                  as BS
-import qualified Data.ByteString.Char8            as BS8
-import           Data.IP                          (IP (..))
-import           Data.Maybe                       (catMaybes, fromMaybe,
-                                                   isNothing)
-import           Data.Streaming.Network           (HostPreference)
-import           Data.String                      (fromString)
-import           Data.Version                     (showVersion)
-import qualified Network.DNS                      as DNS
-import           Network.Socket                   (PortNumber)
-import           Options.Applicative
-import           Text.Read                        (readMaybe)
+import Control.Exception                (SomeException, handle)
+import Control.Monad                    (when)
+import Data.Attoparsec.ByteString       ((<?>))
+import Data.Attoparsec.ByteString       qualified as P
+import Data.Attoparsec.ByteString.Char8 qualified as P8
+import Data.ByteString                  qualified as BS
+import Data.ByteString.Char8            qualified as BS8
+import Data.IP                          (IP (..))
+import Data.Maybe                       (catMaybes, fromMaybe, isNothing)
+import Data.Streaming.Network           (HostPreference)
+import Data.String                      (fromString)
+import Data.Version                     (showVersion)
+import Network.DNS                      qualified as DNS
+import Network.Socket                   (PortNumber)
+import Options.Applicative
+import Text.Read                        (readMaybe)
 
-import           Paths_dprox                      (version)
+import Paths_dprox (version)
 
 data GlobalConfig = GlobalConfig
     { setUser       :: Maybe String

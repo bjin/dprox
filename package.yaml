@@ -38,6 +38,9 @@ flags:
     manual: true
     default: false
 
+default-extensions:
+- ImportQualifiedPost
+
 ghc-options:
 - -Wall
 - -O2

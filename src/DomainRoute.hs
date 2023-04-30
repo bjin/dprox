@@ -3,17 +3,17 @@
 -- Copyright (C) 2019 Bin Jin. All Rights Reserved.
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module DomainRoute
-( DomainRoute
-, newDomainRoute
-, getDomainRouteExact
-, getDomainRouteByPrefix
-) where
+  ( DomainRoute
+  , getDomainRouteByPrefix
+  , getDomainRouteExact
+  , newDomainRoute
+  ) where
 
-import qualified Data.ByteString.Char8 as BS
-import           Data.Char             (toLower)
-import qualified Data.Trie             as T
-import qualified Data.Trie.Convenience as T
-import qualified Network.DNS           as DNS
+import Data.ByteString.Char8 qualified as BS
+import Data.Char             (toLower)
+import Data.Trie             qualified as T
+import Data.Trie.Convenience qualified as T
+import Network.DNS           qualified as DNS
 
 newtype DomainRoute a = DomainRoute (T.Trie a)
     deriving (Eq, Show, Functor, Foldable)

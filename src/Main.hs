@@ -6,24 +6,24 @@
 {-# LANGUAGE TupleSections     #-}
 module Main where
 
-import           Control.Concurrent        (forkIO, threadDelay)
-import           Control.Exception         (SomeException, handle)
-import           Control.Monad             (forM, forever, join)
-import           Data.ByteString           (ByteString)
-import qualified Data.Foldable             as F
-import           Data.Hashable             (Hashable (..))
-import qualified Data.Map                  as M
-import           Data.Maybe                (fromMaybe)
-import qualified Data.Set                  as S
-import           Data.Streaming.Network    (bindPortUDP)
-import qualified Network.DNS               as DNS
-import           Network.Socket.ByteString (recvFrom, sendTo)
-import           System.Posix.User         (UserEntry (..), getUserEntryForName,
-                                            setUserID)
+import Control.Concurrent        (forkIO, threadDelay)
+import Control.Exception         (SomeException, handle)
+import Control.Monad             (forM, forever, join)
+import Data.ByteString           (ByteString)
+import Data.Foldable             qualified as F
+import Data.Hashable             (Hashable (..))
+import Data.Map                  qualified as M
+import Data.Maybe                (fromMaybe)
+import Data.Set                  qualified as S
+import Data.Streaming.Network    (bindPortUDP)
+import Network.DNS               qualified as DNS
+import Network.Socket.ByteString (recvFrom, sendTo)
+import System.Posix.User
+    (UserEntry (..), getUserEntryForName, setUserID)
 
-import           Config
-import           DomainRoute
-import           LRU
+import Config
+import DomainRoute
+import LRU
 
 instance Hashable DNS.TYPE where
     hashWithSalt s = hashWithSalt s . DNS.fromTYPE

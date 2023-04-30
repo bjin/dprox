@@ -4,12 +4,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import           Control.Monad         (forM_)
-import qualified Data.ByteString.Char8 as BS8
-import           Data.Char             (toUpper)
-import           Test.Hspec
+import Control.Monad         (forM_)
+import Data.ByteString.Char8 qualified as BS8
+import Data.Char             (toUpper)
+import Test.Hspec
 
-import           DomainRoute
+import DomainRoute
 
 main :: IO ()
 main = hspec $ do

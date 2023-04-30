@@ -4,20 +4,19 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections   #-}
 module LRU
-( LRUCache
-, newCache
-, lookupCache
-, updateCache
-, purgeCache
-) where
+  ( LRUCache
+  , lookupCache
+  , newCache
+  , purgeCache
+  , updateCache
+  ) where
 
-import qualified Data.HashPSQ           as PQ
-import           Data.Hashable          (Hashable)
-import           Data.IORef             (IORef, atomicModifyIORef', newIORef,
-                                         readIORef)
-import           Data.Int               (Int64)
-import           Data.Time.Clock.System (SystemTime (..), getSystemTime)
-import           Network.DNS            (TTL)
+import Data.Hashable          (Hashable)
+import Data.HashPSQ           qualified as PQ
+import Data.Int               (Int64)
+import Data.IORef             (IORef, atomicModifyIORef', newIORef, readIORef)
+import Data.Time.Clock.System (SystemTime (..), getSystemTime)
+import Network.DNS            (TTL)
 
 type Time = Int64
 
