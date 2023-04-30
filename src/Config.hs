@@ -6,6 +6,8 @@ module Config
   ( Config (..)
   , GlobalConfig (..)
   , IP (..)
+  , IPMask
+  , IPSetMatch (..)
   , PortNumber
   , getConfig
   , invalidIPAddress
@@ -18,7 +20,7 @@ import Data.Attoparsec.ByteString       qualified as P
 import Data.Attoparsec.ByteString.Char8 qualified as P8
 import Data.ByteString                  qualified as BS
 import Data.ByteString.Char8            qualified as BS8
-import Data.IP                          (IP (..))
+import Data.IP                          (AddrRange, IP (..), IPv4)
 import Data.Maybe                       (catMaybes, fromMaybe, isNothing)
 import Data.Streaming.Network           (HostPreference)
 import Data.String                      (fromString)
@@ -36,23 +38,35 @@ data GlobalConfig = GlobalConfig
     , listenAddress :: Maybe HostPreference
     , cacheSize     :: Int
     , cacheTTL      :: DNS.TTL
+    , ipsetMatch    :: IPSetMatch
+    , ipsetServer   :: Maybe (IP, Maybe PortNumber)
     } deriving (Eq, Show)
+
+type IPMask = AddrRange IPv4
 
 data Config = Server (Maybe DNS.Domain) IP (Maybe PortNumber)
             | Address DNS.Domain IP
             | Hosts DNS.Domain IP
             | BogusNX IP
+            | IPSet IPMask
+    deriving (Eq, Show)
+
+data IPSetMatch = NoneMatch
+                | AllMatch
+                | AnyMatch
+                | AnyNotMatch
     deriving (Eq, Show)
 
 getConfig :: IO (GlobalConfig, [Config])
 getConfig = do
-    (globalConfigs, configFiles, hostsFiles, confs) <- execParser opts
+    (confs, globalConfigs, configFiles, hostsFiles, ipsetFiles) <- execParser opts
     confs1 <- concat <$> mapM readConfigFromFile configFiles
     confs2 <- concat <$> mapM readHostsFromFile hostsFiles
-    return (globalConfigs, confs1 ++ confs2 ++ confs)
+    confs3 <- concat <$> mapM readIPSetFromFile ipsetFiles
+    return (globalConfigs, confs1 ++ confs2 ++ confs3 ++ confs)
   where
-    opts = info ((,,,) <$> globalOption <*> configFileOption
-                       <*> hostsFilesOption <*> plainOption <**> ver <**> helper)
+    opts = info ((,,,,) <$> plainOption <*> globalOption <*> configFileOption
+                        <*> hostsFilesOption <*> ipsetFileOption <**> ver <**> helper)
       ( fullDesc <> progDesc desc )
 
     desc = "a lightweight DNS proxy server, supports a small subset of dnsmasq options"
@@ -60,6 +74,7 @@ getConfig = do
 
     readConfigFromFile file = handle handler (parseConfigFile <$> BS.readFile file)
     readHostsFromFile file = handle handler (parseHostsFile <$> BS.readFile file)
+    readIPSetFromFile file = handle handler (parseIPSetFile <$> BS.readFile file)
 
     handler :: SomeException -> IO [Config]
     handler _ = return []
@@ -100,6 +115,18 @@ parseHostsFile bs = case P.parseOnly parseFile bs of
         skipLine
         return (Hosts parsedDomain parsedIP)
 
+parseIPSetFile :: BS.ByteString -> [Config]
+parseIPSetFile bs = case P.parseOnly parseFile bs of
+    Left msg -> error msg
+    Right r  -> r
+  where
+    parseFile = catMaybes <$> P.many' (parseLine parseIPSet)
+
+    parseIPSet = do
+        parsedIPSet <- ip4mask
+        skipLine
+        return (IPSet parsedIPSet)
+
 parseLine :: P.Parser a -> P.Parser (Maybe a)
 parseLine parser = do
     eof <- P.atEnd
@@ -125,11 +152,21 @@ ip = (<?> "IP address") $ do
         Nothing     -> fail ("invalid IP address: " ++ ipstr)
         Just ipaddr -> return ipaddr
 
-invalidIPAddress :: IP
-invalidIPAddress = "::"
+ip4mask :: P.Parser IPMask
+ip4mask = (<?> "IPv4 mask") $ do
+    ipstr <- BS8.unpack <$> P8.takeWhile1 (P8.inClass "0-9./")
+    case readMaybe ipstr of
+        Nothing     -> fail ("invalid IP mask: " ++ ipstr)
+        Just ipmask -> return ipmask
 
 port :: P.Parser PortNumber
 port = read . BS8.unpack <$> P.takeWhile1 P8.isDigit_w8 <?> "Port Number"
+
+ipport :: P.Parser (IP, Maybe PortNumber)
+ipport = (,) <$> ip <*> optional (P8.char '#' *> port)
+
+invalidIPAddress :: IP
+invalidIPAddress = "::"
 
 globalOption :: Parser GlobalConfig
 globalOption = GlobalConfig <$> userOption
@@ -137,6 +174,8 @@ globalOption = GlobalConfig <$> userOption
                             <*> listenOption
                             <*> cacheOption
                             <*> ttlOption
+                            <*> ipsetMatchOption
+                            <*> ipsetServerOption
   where
     userOption = optional $ strOption
         ( long "user"
@@ -168,6 +207,24 @@ globalOption = GlobalConfig <$> userOption
        <> value 233
        <> help "Cache TTL in seconds (default value: 233)")
 
+    ipsetMatchOption = option (maybeReader ipsetMatchReader)
+        ( long "ipset-match"
+       <> metavar "<none|all|any|anynotmatch>"
+       <> value AnyMatch
+       <> help ("matching policy for --ipset (default value: any). Note that the matching procedure will " ++
+                "be performed only on DNS response with at least one IPv4 address."))
+
+    ipsetServerOption = optional $ option (attoparsecReader ipport)
+        ( long "ipset-server"
+       <> metavar "<ipaddr>[#port]"
+       <> help "DNS server to use if ipset matches DNS response")
+
+    ipsetMatchReader "none"        = Just NoneMatch
+    ipsetMatchReader "all"         = Just AllMatch
+    ipsetMatchReader "any"         = Just AnyMatch
+    ipsetMatchReader "anynotmatch" = Just AnyNotMatch
+    ipsetMatchReader _             = Nothing
+
 configFileOption :: Parser [FilePath]
 configFileOption = many $ strOption
     ( long "conf-file"
@@ -192,8 +249,14 @@ hostsFilesOption = combine <$> noHostsOption <*> many newHostsOption
        <> short 'h'
        <> help "Don't read /etc/hosts")
 
+ipsetFileOption :: Parser [FilePath]
+ipsetFileOption = many $ strOption
+    ( long "ipset-file"
+   <> metavar "<file>"
+   <> help "Read ipset from files")
+
 plainOption :: Parser [Config]
-plainOption = (++) <$> many server <*> ((++) <$> many address <*> many bogusnx)
+plainOption = (++) <$> many server <*> ((++) <$> many address <*> ((++) <$> many bogusnx <*> many ipset))
   where
     server = option (attoparsecReader serverValue)
         ( long "server"
@@ -218,8 +281,17 @@ plainOption = (++) <$> many server <*> ((++) <$> many address <*> many bogusnx)
     bogusnx = option (attoparsecReader bogusNXValue)
         ( long "bogus-nxdomain"
        <> short 'B'
-       <> metavar "ip"
+       <> metavar "<ipaddr>"
        <> help "Transform replies which contain the IP address given into \"No such domain\" replies")
+
+    ipset = option (attoparsecReader (IPSet <$> ip4mask))
+        ( long "ipset"
+       <> metavar "<ipmask>"
+       <> help ipsetMsg)
+
+    ipsetMsg = "Add an IPv4 address to ipset. If DNS responses matches ipset, DNS responses from " ++
+               "\"--ipset-server\" will be returned instead. Exact matching policy can be controlled " ++
+               "by \"--ipset-match\". Note that this option is different from the option with the same name from dnsmasq."
 
 attoparsecReader :: P.Parser a -> ReadM a
 attoparsecReader p = eitherReader (P.parseOnly (p <* P.endOfInput) . BS8.pack)

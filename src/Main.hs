@@ -12,8 +12,10 @@ import Control.Monad             (forM, forever, join)
 import Data.ByteString           (ByteString)
 import Data.Foldable             qualified as F
 import Data.Hashable             (Hashable (..))
+import Data.IP                   qualified as IP
+import Data.IP.RouteTable        qualified as IP
 import Data.Map                  qualified as M
-import Data.Maybe                (fromMaybe)
+import Data.Maybe                (fromMaybe, isJust, maybeToList)
 import Data.Set                  qualified as S
 import Data.Streaming.Network    (bindPortUDP)
 import Network.DNS               qualified as DNS
@@ -104,6 +106,29 @@ handleBogusNX blacklist resolver qd qt =
     isBlacklisted (DNS.RD_AAAA ipv6) = IPv6 ipv6 `S.member` blacklist
     isBlacklisted _                  = False
 
+handleIPSet :: [IPMask] -> IPSetMatch -> Maybe Resolver -> Resolver -> Resolver
+handleIPSet [] _ _ = id
+handleIPSet _ _ Nothing = id
+handleIPSet ipset match (Just ipsetResolver) = handleWithResolver
+  where
+    iproute = IP.fromList $ zip ipset $ repeat ()
+    inIPSet ip = isJust $ IP.lookup (IP.makeAddrRange ip 32) iproute
+
+    check NoneMatch   = not . any inIPSet
+    check AllMatch    = all inIPSet
+    check AnyMatch    = any inIPSet
+    check AnyNotMatch = any (not.inIPSet)
+
+    handleWithResolver resolver qd qt = do
+        res <- resolver qd qt
+        case res of
+            Left _   -> return res
+            Right rs -> do
+                let ipv4s = [ipv4 | DNS.RD_A ipv4 <- rs]
+                if not (null ipv4s) && check match ipv4s
+                  then ipsetResolver qd qt
+                  else return res
+
 makeResolverCache :: Int -> DNS.TTL -> IO (Resolver -> CachedResolver)
 makeResolverCache sz ttl | sz <= 0 = return $ \r qd qt -> fmap (ttl,) <$> r qd qt
 makeResolverCache sz ttl = do
@@ -140,6 +165,7 @@ main = do
         address = [(domain, [ip]) | Address domain ip <- conf]
         hosts = [(domain, [ip]) | Hosts domain ip <- conf]
         bogusnx = [ip | BogusNX ip <- conf]
+        ipset = [ipmask | IPSet ipmask <- conf]
 
         serverRoute = newDomainRoute (const id) server
         serverAddressSet = S.fromList $ F.toList serverRoute
@@ -149,8 +175,10 @@ main = do
 
         bogusnxSet = S.fromList bogusnx
 
+        ipsetServerPort = fmap (fromMaybe defaultPort) <$> ipsetServer
+
         resolvConfs = [ (addr, rc)
-                      | addr@(host, port) <- S.toList serverAddressSet
+                      | addr@(host, port) <- S.toList serverAddressSet ++ maybeToList ipsetServerPort
                       , host /= invalidIPAddress
                       , let rsinfo = if port == defaultPort
                                 then DNS.RCHostName (show host)
@@ -179,9 +207,11 @@ main = do
         createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)
         createResolvers [] m = let serverRoute' = fmap (`M.lookup`m) serverRoute
+                                   ipsetResolver = join $ fmap (`M.lookup`m) ipsetServerPort
                                    resolver = resolverCache $
-                                              handleBogusNX bogusnxSet $
                                               handleAddressAndHosts addressRoute hostsRoute $
+                                              handleIPSet ipset ipsetMatch ipsetResolver $
+                                              handleBogusNX bogusnxSet $
                                               handleServer serverRoute'
                                in processWithResolver resolver
     createResolvers resolvSeeds M.empty
