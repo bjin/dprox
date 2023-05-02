@@ -106,10 +106,10 @@ handleBogusNX blacklist resolver qd qt =
     isBlacklisted (DNS.RD_AAAA ipv6) = IPv6 ipv6 `S.member` blacklist
     isBlacklisted _                  = False
 
-handleIPSet :: [IPMask] -> IPSetMatch -> Maybe Resolver -> CachedResolver -> CachedResolver
-handleIPSet [] _ _ = id
-handleIPSet _ _ Nothing = id
-handleIPSet ipset match (Just ipsetResolver) = handleWithResolver
+handleIPSet :: [IPMask] -> IPSetMatch -> Maybe Resolver -> LRUCache DNS.Domain () -> CachedResolver -> CachedResolver
+handleIPSet [] _ _ _ = id
+handleIPSet _ _ Nothing _ = id
+handleIPSet ipset match (Just ipsetResolver) cache = handleWithResolver
   where
     iproute = IP.fromList $ zip ipset $ repeat ()
     inIPSet ip = isJust $ IP.lookup (IP.makeAddrRange ip 32) iproute
@@ -120,14 +120,20 @@ handleIPSet ipset match (Just ipsetResolver) = handleWithResolver
     check AnyNotMatch = any (not.inIPSet)
 
     handleWithResolver resolver qd qt@DNS.A = do
-        res <- resolver qd qt
-        case res of
-            Left _        -> return res
-            Right (_, rs) -> do
-                let ipv4s = [ipv4 | DNS.RD_A ipv4 <- rs]
-                if not (null ipv4s) && check match ipv4s
-                  then fmap (1, ) <$> ipsetResolver qd qt
-                  else return res
+        cachedInIPSet <- isJust <$> lookupCache qd cache
+        if cachedInIPSet
+          then fmap (1,) <$> ipsetResolver qd qt
+          else do
+            res <- resolver qd qt
+            case res of
+                Left _        -> return res
+                Right (_, rs) -> do
+                    let ipv4s = [ipv4 | DNS.RD_A ipv4 <- rs]
+                    if not (null ipv4s) && check match ipv4s
+                      then do
+                        updateCache qd () cache
+                        fmap (1,) <$> ipsetResolver qd qt
+                      else return res
     handleWithResolver resolver qd qt = resolver qd qt
 
 makeResolverCache :: Int -> DNS.TTL -> IO (Resolver -> CachedResolver)
@@ -198,6 +204,7 @@ main = do
     F.mapM_ setuid setUser
 
     resolverCache <- makeResolverCache cacheSize cacheTTL
+    ipsetCache <- newCache 4096 maxBound
 
     let processWithResolver resolver = forever $ do
             (bs, addr) <- recvFrom sock (fromIntegral DNS.maxUdpSize)
@@ -209,7 +216,7 @@ main = do
             createResolvers xs (M.insert k (DNS.lookup rs) m)
         createResolvers [] m = let serverRoute' = fmap (`M.lookup`m) serverRoute
                                    ipsetResolver = join $ fmap (`M.lookup`m) ipsetServerPort
-                                   resolver = handleIPSet ipset ipsetMatch ipsetResolver $
+                                   resolver = handleIPSet ipset ipsetMatch ipsetResolver ipsetCache $
                                               resolverCache $
                                               handleAddressAndHosts addressRoute hostsRoute $
                                               handleBogusNX bogusnxSet $
