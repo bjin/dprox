@@ -119,7 +119,7 @@ handleIPSet ipset match (Just ipsetResolver) = handleWithResolver
     check AnyMatch    = any inIPSet
     check AnyNotMatch = any (not.inIPSet)
 
-    handleWithResolver resolver qd qt = do
+    handleWithResolver resolver qd qt@DNS.A = do
         res <- resolver qd qt
         case res of
             Left _        -> return res
@@ -128,6 +128,7 @@ handleIPSet ipset match (Just ipsetResolver) = handleWithResolver
                 if not (null ipv4s) && check match ipv4s
                   then fmap (1, ) <$> ipsetResolver qd qt
                   else return res
+    handleWithResolver resolver qd qt = resolver qd qt
 
 makeResolverCache :: Int -> DNS.TTL -> IO (Resolver -> CachedResolver)
 makeResolverCache sz ttl | sz <= 0 = return $ \r qd qt -> fmap (ttl,) <$> r qd qt
