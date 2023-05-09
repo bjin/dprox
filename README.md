@@ -49,8 +49,7 @@ Here is the list of implemented dnsmasq options (with `server`, `local`, `addres
 Use `dprox --help` or [dnsmasq manpage](http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) for further details about these options.
 But be aware that there might be minor differences on some options like `--server`.
 
-To use `dprox` with `dnsmasq-china-list`, with "8.8.4.4" as the remote DNS server
-(systemd user can also use [this unit file](https://github.com/bjin/dprox/blob/master/systemd/dprox.service)):
+To use `dprox` with `dnsmasq-china-list`, with "8.8.4.4" as the remote DNS server:
 
 ```sh
 dprox -C /etc/dnsmasq.d/accelerated-domains.china.conf -C /etc/dnsmasq.d/bogus-nxdomain.china.conf -S 8.8.4.4
@@ -60,6 +59,16 @@ To use `dprox` with `hosts-blocklists` and the default remote DNS server ("8.8.8
 
 ```sh
 dprox -C /opt/hosts-blocklists/domains.txt -H /opt/hosts-blocklists/hostnames.txt -h
+```
+
+There is also a customized `--ipset` option (different from `dnsmasq`). If DNS response somehow matches `ipset`,
+alternative DNS server `ipset-server` will be used instead. The exact matching policy can be set by `ipset-match`.
+
+```
+--ipset <ipmask>
+--ipset-match <none|all|any|anynotmatch>
+--ipset-server <ipaddr>[#port]
+--ipset-file <file>
 ```
 
 ### Known Issue
