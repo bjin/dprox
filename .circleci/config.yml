@@ -12,10 +12,10 @@ jobs:
             - cci-dprox-v4-{{ checksum "stack.yaml" }}
       - run:
           name: Install executable
-          command: stack install --flag dprox:static
+          command: stack install --flag dprox:static --ghc-options -split-sections --ghc-options -O2
       - run:
           name: Run tests
-          command: stack test --flag dprox:static
+          command: stack test --flag dprox:static --ghc-options -split-sections --ghc-options -O2
       - run:
           name: Package executable
           command: mkdir ~/release && tar czvf ~/release/dprox-$(stack query locals dprox version | tr -d -C "0-9.")-$(git rev-parse --short HEAD)-linux-x86_64-static.tar.gz -C ~/.local/bin dprox

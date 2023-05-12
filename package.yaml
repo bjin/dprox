@@ -50,7 +50,7 @@ ghc-options:
 
 when:
 - condition: flag(static)
-  ghc-options: -optl-static
+  ghc-options: -optl-static -split-sections
 
 executables:
   dprox:

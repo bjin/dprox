@@ -1,9 +1,10 @@
-resolver: nightly-2023-04-28
+resolver: nightly-2023-05-12
 packages:
 - .
 extra-deps:
 - github: wrengr/bytestring-trie
   commit: 804425aa9cf12a778d9139e1f671d99a5a5a366a
+apply-ghc-options: everything
 nix:
   packages:
     - zlib
