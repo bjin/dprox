@@ -7,7 +7,7 @@
 module Main where
 
 import Control.Concurrent        (forkIO, threadDelay)
-import Control.Exception         (SomeException, displayException, handle)
+import Control.Exception         (SomeException, handle)
 import Control.Monad             (forM, forever, join, void)
 import Data.ByteString           (ByteString)
 import Data.Foldable             qualified as F
@@ -61,22 +61,23 @@ processQuery resolver (DNS.Question qd qt) = handle handler $ do
     getType DNS.RD_AAAA{}  = DNS.AAAA
     getType _              = qt
 
-processDNS :: CachedResolver -> ByteString -> IO (Either DNS.DNSError ByteString)
-processDNS resolver bs
-    | Left e <- parse = return (Left e)
-    | Right q <- parse = do
-        rrs <- mapM (processQuery resolver) (DNS.question q)
-        let hd = DNS.header DNS.defaultResponse
-            resp = DNS.defaultResponse {
-                DNS.header = hd { DNS.identifier = DNS.identifier (DNS.header q) },
-                DNS.question = DNS.question q,
-                DNS.answer = concat rrs
-            }
-        return (Right (DNS.encode resp))
-  where
-    parse = do
-        q <- DNS.decode bs
-        if DNS.qOrR (DNS.flags (DNS.header q)) == DNS.QR_Query then return q else Left DNS.FormatError
+parseDNS :: ByteString -> Either DNS.DNSError DNS.DNSMessage
+parseDNS bs = do
+    q <- DNS.decode bs
+    if DNS.qOrR (DNS.flags (DNS.header q)) == DNS.QR_Query
+        then return q
+        else Left DNS.FormatError
+
+processDNS :: CachedResolver -> DNS.DNSMessage -> IO (Either DNS.DNSError ByteString)
+processDNS resolver DNS.DNSMessage{ DNS.header = hd, DNS.question = q } = do
+    rrs <- mapM (processQuery resolver) q
+    let hd0 = DNS.header DNS.defaultResponse
+        resp = DNS.defaultResponse {
+            DNS.header = hd0 { DNS.identifier = DNS.identifier hd },
+            DNS.question = q,
+            DNS.answer = concat rrs
+        }
+    return (Right (DNS.encode resp))
 
 handleServer :: DomainRoute (Maybe Resolver) -> Resolver
 handleServer route qd qt = case resolver of
@@ -222,10 +223,15 @@ main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) lo
     let processWithResolver resolver = forever $ do
             (bs, addr) <- recvFrom sock (fromIntegral DNS.maxUdpSize)
             forkIO $ do
-                resp <- processDNS resolver bs
-                case resp of
-                    Right resp' -> void $ sendTo sock resp' addr
-                    Left err    -> logger DEBUG $ "dns error: " <> toLogStr (displayException err) <> " from: " <> toLogStr (show addr)
+                case parseDNS bs of
+                    Left err -> logger DEBUG $ "dns parse error: " <> toLogStr (show err) <> " from: " <> toLogStr (show addr)
+                    Right q  -> do
+                        logger TRACE $ "dns request from " <> toLogStr (show addr) <> ": " <> toLogStr (show $ DNS.question q)
+                        resp <- processDNS resolver q
+                        case resp of
+                            Right resp' -> void $ sendTo sock resp' addr
+                            Left err    -> do
+                                logger DEBUG $ "dns process error: " <> toLogStr (show err) <> " from: " <> toLogStr (show addr)
 
         createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)
