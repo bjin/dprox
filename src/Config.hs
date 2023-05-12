@@ -30,7 +30,8 @@ import Network.Socket                   (PortNumber)
 import Options.Applicative
 import Text.Read                        (readMaybe)
 
-import Paths_dprox (version)
+import Log
+import Paths_dprox
 
 data GlobalConfig = GlobalConfig
     { setUser       :: Maybe String
@@ -38,6 +39,7 @@ data GlobalConfig = GlobalConfig
     , listenAddress :: Maybe HostPreference
     , cacheSize     :: Int
     , cacheTTL      :: DNS.TTL
+    , loglevel      :: LogLevel
     , ipsetMatch    :: IPSetMatch
     , ipsetServer   :: Maybe (IP, Maybe PortNumber)
     } deriving (Eq, Show)
@@ -174,6 +176,7 @@ globalOption = GlobalConfig <$> userOption
                             <*> listenOption
                             <*> cacheOption
                             <*> ttlOption
+                            <*> loglevelOption
                             <*> ipsetMatchOption
                             <*> ipsetServerOption
   where
@@ -206,6 +209,12 @@ globalOption = GlobalConfig <$> userOption
        <> metavar "<seconds>"
        <> value 233
        <> help "Cache TTL in seconds (default value: 233)")
+
+    loglevelOption = option (maybeReader logLevelReader)
+        ( long "log-level"
+       <> metavar "<trace|debug|info|warn|error|none>"
+       <> value INFO
+       <> help "specify the logging level (default: info)")
 
     ipsetMatchOption = option (maybeReader ipsetMatchReader)
         ( long "ipset-match"

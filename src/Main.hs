@@ -7,8 +7,8 @@
 module Main where
 
 import Control.Concurrent        (forkIO, threadDelay)
-import Control.Exception         (SomeException, handle)
-import Control.Monad             (forM, forever, join)
+import Control.Exception         (SomeException, displayException, handle)
+import Control.Monad             (forM, forever, join, void)
 import Data.ByteString           (ByteString)
 import Data.Foldable             qualified as F
 import Data.Hashable             (Hashable (..))
@@ -18,6 +18,7 @@ import Data.Map                  qualified as M
 import Data.Maybe                (fromMaybe, isJust, maybeToList)
 import Data.Set                  qualified as S
 import Data.Streaming.Network    (bindPortUDP)
+import Data.Version              (showVersion)
 import Network.DNS               qualified as DNS
 import Network.Socket.ByteString (recvFrom, sendTo)
 import System.Posix.User
@@ -25,7 +26,9 @@ import System.Posix.User
 
 import Config
 import DomainRoute
+import Log
 import LRU
+import Paths_dprox
 
 instance Hashable DNS.TYPE where
     hashWithSalt s = hashWithSalt s . DNS.fromTYPE
@@ -161,8 +164,9 @@ setuid :: String -> IO ()
 setuid user = getUserEntryForName user >>= setUserID . userID
 
 main :: IO ()
-main = do
-    (GlobalConfig{..}, conf) <- getConfig
+main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) loglevel $ \logger -> do
+    logger INFO $ "dprox " <> toLogStr (showVersion version) <> " started"
+
     let defaultPort = 53
         fallbackServer = Server Nothing "8.8.8.8" Nothing
 
@@ -196,8 +200,17 @@ main = do
                         }
                       ]
 
-    sock <- bindPortUDP (fromIntegral $ fromMaybe defaultPort localPort) (fromMaybe "*6" listenAddress)
+    logger INFO $ "read " <> toLogStr (length server) <> " server configs"
+    logger INFO $ "read " <> toLogStr (length hosts) <> " hosts configs"
+    logger INFO $ "read " <> toLogStr (length bogusnx) <> " bogus-nxdomain configs"
+    logger INFO $ "read " <> toLogStr (length ipset) <> " ipset configs"
+
+    let (bport, bhost) = (fromIntegral $ fromMaybe defaultPort localPort, fromMaybe "*6" listenAddress)
+    sock <- bindPortUDP bport bhost
+    logger INFO $ "bind to " <> toLogStr (show bhost) <> ":" <> toLogStr bport
+
     resolvSeeds <- forM resolvConfs $ \(k, v) -> do
+        logger INFO $ "creating resolver: " <> toLogStr (show $ fst k) <> ":" <> toLogStr (show $ snd k)
         rs <- DNS.makeResolvSeed v
         return (k, rs)
 
@@ -210,7 +223,9 @@ main = do
             (bs, addr) <- recvFrom sock (fromIntegral DNS.maxUdpSize)
             forkIO $ do
                 resp <- processDNS resolver bs
-                F.forM_ resp $ \resp' -> sendTo sock resp' addr
+                case resp of
+                    Right resp' -> void $ sendTo sock resp' addr
+                    Left err    -> logger DEBUG $ "dns error: " <> toLogStr (displayException err) <> " from: " <> toLogStr (show addr)
 
         createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)

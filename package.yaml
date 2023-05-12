@@ -4,7 +4,7 @@ github:              "bjin/dprox"
 license:             BSD3
 author:              "Bin Jin"
 maintainer:          "bjin@ctrl-d.org"
-copyright:           "2019 Bin Jin"
+copyright:           "2023 Bin Jin"
 
 synopsis:            a lightweight DNS proxy server
 category:            DNS
@@ -23,6 +23,7 @@ dependencies:
 - bytestring-trie >= 0.2.4
 - containers >= 0.6
 - dns >= 3.0.4
+- fast-logger >= 3.0
 - hashable >= 1.2
 - iproute >= 1.7
 - network >= 2.8
@@ -61,6 +62,7 @@ executables:
     - Config
     - DomainRoute
     - LRU
+    - Log
     - Paths_dprox
 
 tests:
