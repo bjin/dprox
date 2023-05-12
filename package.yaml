@@ -6,7 +6,7 @@ author:              "Bin Jin"
 maintainer:          "bjin@ctrl-d.org"
 copyright:           "2023 Bin Jin"
 
-synopsis:            a lightweight DNS proxy server
+synopsis:            a lightweight DNS proxy server, compatible with dnsmasq-china-list
 category:            DNS
 
 description:
@@ -44,7 +44,6 @@ default-extensions:
 
 ghc-options:
 - -Wall
-- -O2
 - -threaded
 - -rtsopts
 - -with-rtsopts=-N
