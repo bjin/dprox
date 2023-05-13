@@ -1,30 +1,48 @@
 version: 2.1
 jobs:
   build:
-    docker:
-      - image: bjin/stack-docker:9.4.5
+    machine:
+      image: ubuntu-2004:current
+    resource_class: medium
+    environment:
+      - STACK_BIN_URL: https://github.com/commercialhaskell/stack/releases/download/v2.9.3/stack-2.9.3-linux-x86_64-static.tar.gz
+      - DOCKER_REPO: bjin/stack-docker:9.4.5
+      - DOCKER_EXE: image
     steps:
       - checkout
+      - run:
+          name: Prepare environment
+          command: |
+            curl -L "$STACK_BIN_URL" | tar xz --wildcards --strip-components=1 '*/stack'
+            docker pull "$DOCKER_REPO"
       - restore_cache:
           name: Restore Cached Dependencies
-          keys:
-            - cci-dprox-v4-{{ checksum "stack.yaml" }}-{{ checksum "package.yaml" }}
-            - cci-dprox-v4-{{ checksum "stack.yaml" }}
+          key: cci-dprox-{{ arch }}-{{ checksum "stack.yaml" }}
       - run:
-          name: Install executable
-          command: stack install --flag dprox:static --ghc-options -split-sections --ghc-options -O2
+          name: Build
+          command: |
+            ./stack \
+                --no-interleaved-output --system-ghc --no-install-ghc \
+                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe "$DOCKER_EXE" \
+                install --flag dprox:static --ghc-options -split-sections --ghc-options -O2
       - run:
           name: Run tests
-          command: stack test --flag dprox:static --ghc-options -split-sections --ghc-options -O2
+          command: |
+            ./stack \
+                --no-interleaved-output --system-ghc --no-install-ghc \
+                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe "$DOCKER_EXE" \
+                test --flag dprox:static --ghc-options -split-sections --ghc-options -O2
       - run:
           name: Package executable
-          command: mkdir ~/release && tar czvf ~/release/dprox-$(stack query locals dprox version | tr -d -C "0-9.")-$(git rev-parse --short HEAD)-linux-x86_64-static.tar.gz -C ~/.local/bin dprox
+          command: |
+            mkdir ~/release
+            tar czvf "$HOME/release/dprox-$(git describe --tags | sed 's/^v//;s/-\([^-]*-g\)/-r\1/')-linux-x86_64-static.tar.gz" \
+                -C .stack-work/docker/_home/.local/bin dprox
       - store_artifacts:
           path: ~/release
           destination: release
       - save_cache:
           name: Cache Dependencies
-          key: cci-dprox-v4-{{ checksum "stack.yaml" }}-{{ checksum "package.yaml" }}
+          key: cci-dprox-{{ arch }}-{{ checksum "stack.yaml" }}
           paths:
             - ~/.stack
-            - .stack-work
