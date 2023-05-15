@@ -14,8 +14,7 @@ while improving the overall lookup performance over large domain list.
 
 ### Installation
 
-`dprox` should build and work on all unix-like OS with [ghc](https://www.haskell.org/ghc/) support, but it's only
-been tested on Linux and macOS.
+`dprox` should build and work on all unix-like OS with [ghc](https://www.haskell.org/ghc/) support, as well as Windows.
 
 While `dprox` can be built with [cabal](https://www.haskell.org/cabal/) like any other Hackage packages, for a
 reliable compilation with pinned dependencies, [stack](https://docs.haskellstack.org/en/stable/README/#how-to-install) is generally recommended.
