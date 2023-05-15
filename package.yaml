@@ -31,7 +31,6 @@ dependencies:
 - psqueues >= 0.2.3
 - streaming-commons >= 0.2
 - time >= 1.8
-- unix >= 2.7
 
 flags:
   static:

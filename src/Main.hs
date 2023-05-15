@@ -21,8 +21,6 @@ import Data.Streaming.Network    (bindPortUDP)
 import Data.Version              (showVersion)
 import Network.DNS               qualified as DNS
 import Network.Socket.ByteString (recvFrom, sendTo)
-import System.Posix.User
-    (UserEntry (..), getUserEntryForName, setUserID)
 
 import Config
 import DomainRoute
@@ -161,9 +159,6 @@ makeResolverCache sz ttl = do
                             return (Right (ttl, v))
     return process
 
-setuid :: String -> IO ()
-setuid user = getUserEntryForName user >>= setUserID . userID
-
 main :: IO ()
 main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) loglevel $ \logger -> do
     logger INFO $ "dprox " <> toLogStr (showVersion version) <> " started"
@@ -214,8 +209,6 @@ main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) lo
         logger INFO $ "creating resolver: " <> toLogStr (show $ fst k) <> ":" <> toLogStr (show $ snd k)
         rs <- DNS.makeResolvSeed v
         return (k, rs)
-
-    F.mapM_ setuid setUser
 
     resolverCache <- makeResolverCache cacheSize cacheTTL
     ipsetCache <- newCache 4096 maxBound

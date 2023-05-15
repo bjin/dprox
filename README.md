@@ -35,7 +35,6 @@ Only a small subset of dnsmasq options are implemented at the moment, just barel
 Here is the list of implemented dnsmasq options (with `server`, `local`, `address` and `bogus-nxdomain` options allowed in configuration file):
 
 ```
--u, --user=<username>
 -p, --port=<port>
 -a, --listen-address=<ipaddr>
 -C, --conf-file=<file>

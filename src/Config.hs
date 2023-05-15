@@ -34,8 +34,7 @@ import Log
 import Paths_dprox
 
 data GlobalConfig = GlobalConfig
-    { setUser       :: Maybe String
-    , localPort     :: Maybe PortNumber
+    { localPort     :: Maybe PortNumber
     , listenAddress :: Maybe HostPreference
     , cacheSize     :: Int
     , cacheTTL      :: DNS.TTL
@@ -171,8 +170,7 @@ invalidIPAddress :: IP
 invalidIPAddress = "::"
 
 globalOption :: Parser GlobalConfig
-globalOption = GlobalConfig <$> userOption
-                            <*> portOption
+globalOption = GlobalConfig <$> portOption
                             <*> listenOption
                             <*> cacheOption
                             <*> ttlOption
@@ -180,12 +178,6 @@ globalOption = GlobalConfig <$> userOption
                             <*> ipsetMatchOption
                             <*> ipsetServerOption
   where
-    userOption = optional $ strOption
-        ( long "user"
-       <> short 'u'
-       <> metavar "<username>"
-       <> help "Specify the userid to which dprox will change after startup")
-
     portOption = optional $ option auto
         ( long "port"
        <> short 'p'
