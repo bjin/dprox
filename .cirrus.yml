@@ -1,0 +1,22 @@
+task:
+  name: build-macos-aarch64
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-ventura-base:latest
+  stack_cache:
+    folder: ~/.stack
+    fingerprint_script:
+      - grep -F resolver stack.yaml
+  setup_script:
+    - brew update
+    - brew install --force-bottle haskell-stack
+    - stack setup
+  build_script:
+    - stack --no-terminal --no-interleaved-output install
+  test_script:
+    - stack --no-terminal --no-interleaved-output test
+  package_and_clean_script:
+    - if [ -n "$CIRRUS_TAG" ]; then VER="$CIRRUS_TAG"; else VER="$(stack query locals dprox version)-$(git rev-parse --short HEAD)"; fi
+    - tar czvf "dprox-$VER-darwin-aarch64.tar.gz" -C ~/.local/bin dprox
+    - rm -rf "$(stack path --programs)"
+  release_artifacts:
+    path: ./dprox-*.tar.gz
