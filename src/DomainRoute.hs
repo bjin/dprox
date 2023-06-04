@@ -10,7 +10,6 @@ module DomainRoute
   ) where
 
 import Data.ByteString.Char8 qualified as BS
-import Data.Char             (toLower)
 import Data.Trie             qualified as T
 import Data.Trie.Convenience qualified as T
 import Network.DNS           qualified as DNS
@@ -20,8 +19,8 @@ newtype DomainRoute a = DomainRoute (T.Trie a)
 
 normalize :: DNS.Domain -> BS.ByteString
 normalize d
-    | BS.null d = BS.empty
-    | otherwise = BS.reverse (BS.cons '.' (BS.map toLower d))
+    | BS.null d = BS.singleton '.'
+    | otherwise = BS.reverse (BS.cons '.' (DNS.normalize d))
 
 newDomainRoute :: (a -> a -> a) -> [(DNS.Domain, a)] -> DomainRoute a
 newDomainRoute merge ds = DomainRoute (T.fromListWithL' merge ds')

@@ -197,6 +197,7 @@ main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) lo
                       ]
 
     logger INFO $ "read " <> toLogStr (length server) <> " server configs"
+    logger INFO $ "read " <> toLogStr (length address) <> " address configs"
     logger INFO $ "read " <> toLogStr (length hosts) <> " hosts configs"
     logger INFO $ "read " <> toLogStr (length bogusnx) <> " bogus-nxdomain configs"
     logger INFO $ "read " <> toLogStr (length ipset) <> " ipset configs"
