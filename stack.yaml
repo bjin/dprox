@@ -1,9 +1,6 @@
-resolver: lts-21.16
+resolver: lts-21.24
 packages:
 - .
-extra-deps:
-- github: wrengr/bytestring-trie
-  commit: 804425aa9cf12a778d9139e1f671d99a5a5a366a
 apply-ghc-options: everything
 nix:
   packages:
