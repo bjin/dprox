@@ -11,26 +11,27 @@
 `dprox` is a lightweight DNS proxy server. It's created as a drop-in replacement
 of [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) to work with
 [dnsmasq-china-list](https://github.com/felixonmars/dnsmasq-china-list),
-while improving the overall lookup performance over large domain list.
+enhancing overall lookup performance over extensive domain lists.
 
 ### Installation
 
 `dprox` should build and work on all unix-like OS with [ghc](https://www.haskell.org/ghc/) support, as well as Windows.
 
-While `dprox` can be built with [cabal](https://www.haskell.org/cabal/) like any other Hackage packages, for a
-reliable compilation with pinned dependencies, [stack](https://docs.haskellstack.org/en/stable/README/#how-to-install) is generally recommended.
+Although `dprox` can be built using [cabal](https://www.haskell.org/cabal/) like any other Hackage package,
+we recommend using [stack](https://docs.haskellstack.org/en/stable/README/#how-to-install) for a more reliable compilation with pinned dependencies.
 
 ```sh
 stack setup
 stack install
 ```
 
-For Arch Linux users, an [AUR package](https://aur.archlinux.org/packages/dprox/) is provided.
-Alternatively, you also can use the statically linked binary for the [latest release](https://github.com/bjin/dprox/releases).
+Arch Linux users can install provided [AUR package](https://aur.archlinux.org/packages/dprox/).
+
+Alternatively, you can opt to use the statically linked binary available in the [latest release](https://github.com/bjin/dprox/releases).
 
 ### Usage
 
-Only a small subset of dnsmasq options are implemented at the moment, just barely enough to work with `dnsmasq-china-list` and [hosts-blocklists](https://github.com/notracking/hosts-blocklists).
+Currently, only a small subset of dnsmasq options is implemented: just enough to seamlessly work with `dnsmasq-china-list` and [hosts-blocklists](https://github.com/notracking/hosts-blocklists).
 
 Here is the list of implemented dnsmasq options (with `server`, `local`, `address` and `bogus-nxdomain` options allowed in configuration file):
 
@@ -45,23 +46,25 @@ Here is the list of implemented dnsmasq options (with `server`, `local`, `addres
 -B, --bogus-nxdomain=<ipaddr>
 ```
 
-Use `dprox --help` or [dnsmasq manpage](http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html) for further details about these options.
-But be aware that there might be minor differences on some options like `--server`.
+For more details about these options, use `dprox --help` or refer to the [dnsmasq manpage](http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html).
+However, be aware that there might be minor differences in some options, such as `--server`.
 
-To use `dprox` with `dnsmasq-china-list`, with "8.8.4.4" as the remote DNS server:
+To use `dprox` with `dnsmasq-china-list` and set "8.8.4.4" as the remote DNS server:
 
 ```sh
 dprox -C /etc/dnsmasq.d/accelerated-domains.china.conf -C /etc/dnsmasq.d/bogus-nxdomain.china.conf -S 8.8.4.4
 ```
 
-To use `dprox` with `hosts-blocklists` and the default remote DNS server ("8.8.8.8"), without loading system hosts file:
+To use `dprox` with `hosts-blocklists` and use the default remote DNS server ("8.8.8.8"), excluding the loading of the system hosts file:
 
 ```sh
 dprox -C /opt/hosts-blocklists/domains.txt -H /opt/hosts-blocklists/hostnames.txt -h
 ```
 
-There is also a customized `--ipset` option (different from `dnsmasq`). If DNS response somehow matches `ipset`,
-alternative DNS server `ipset-server` will be used instead. The exact matching policy can be set by `ipset-match`.
+Additionally, a customized `--ipset` option is available (distinct from `dnsmasq`).
+With these options configured, in case a DNS request somehow matches with the specified `ipset`, `dprox` will switch to an alternative upstream
+DNS server (with the [FakeDNS](https://www.v2fly.org/config/fakedns.html) feature, for example), specified by `ipset-server`.
+The exact matching policy can be configured using the `ipset-match`. These options can be used to enable IP-based routing for DNS requests.
 
 ```
 --ipset <ipmask>
@@ -72,8 +75,8 @@ alternative DNS server `ipset-server` will be used instead. The exact matching p
 
 ### Known Issue
 
-* `dprox` has fairly large memory footprint at the moment. About 85MB for current `dnsmasq-china-list`.
+* `dprox` currently has a relatively large memory footprint, approximately 85MB for the current `dnsmasq-china-list`.
 
 ### License
 
-`dprox` is licensed under the BSD3 license. See LICENSE file for details.
+`dprox` is licensed under the BSD3 license. Refer to the LICENSE file for comprehensive details.
