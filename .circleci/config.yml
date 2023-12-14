@@ -108,7 +108,7 @@ jobs:
       - checkout
       - restore_cache:
           name: Restore Cached Dependencies
-          key: cci-dprox-win-{{ checksum "stack.yaml" }}
+          key: cci-dprox-windows-{{ checksum "stack.yaml" }}
       - run:
           name: Prepare environment
           command: |
@@ -116,20 +116,20 @@ jobs:
             curl -o ./stack.zip -L "$STACK_BIN_URL"
             7z x stack.zip stack.exe
             rm -f stack.zip
-            ./stack.exe --skip-msys \
+            ./stack.exe --skip-msys --ghc-variant int-native \
                 setup
       - run:
           name: Build
           command: |
-            ./stack.exe --skip-msys \
+            ./stack.exe --skip-msys --ghc-variant int-native \
                 --no-terminal --no-interleaved-output \
-                install $GHC_OPTIONS
+                install --flag dprox:static $GHC_OPTIONS
       - run:
           name: Run tests
           command: |
-            ./stack.exe --skip-msys \
+            ./stack.exe --skip-msys --ghc-variant int-native \
                 --no-terminal --no-interleaved-output \
-                test $GHC_OPTIONS
+                test --flag dprox:static $GHC_OPTIONS
       - run:
           name: Package executable
           command: |
@@ -141,7 +141,7 @@ jobs:
           destination: release
       - save_cache:
           name: Cache Dependencies
-          key: cci-dprox-win-{{ checksum "stack.yaml" }}
+          key: cci-dprox-windows-{{ checksum "stack.yaml" }}
           paths:
             - ~/AppData/Roaming/stack
 workflows:
