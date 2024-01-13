@@ -5,6 +5,7 @@ task:
   env:
     STACK_VER: 2.13.1
     STACK_BIN_URL: https://github.com/commercialhaskell/stack/releases/download/v${STACK_VER}/stack-${STACK_VER}-osx-aarch64.tar.gz
+    GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
   stack_cache:
     folder: ~/.stack
     fingerprint_script:
@@ -13,9 +14,9 @@ task:
     - curl -L "${STACK_BIN_URL}" | tar xz --strip-components=1 "stack-${STACK_VER}-osx-aarch64/stack"
     - ./stack setup
   build_script:
-    - ./stack --no-terminal --no-interleaved-output install
+    - ./stack --no-terminal --no-interleaved-output install $GHC_OPTIONS
   test_script:
-    - ./stack --no-terminal --no-interleaved-output test
+    - ./stack --no-terminal --no-interleaved-output test $GHC_OPTIONS
   package_and_clean_script:
     - if [ -n "$CIRRUS_TAG" ]; then VER="$CIRRUS_TAG"; else VER="$(./stack query locals dprox version)-$(git rev-parse --short HEAD)"; fi
     - tar czvf "dprox-$VER-darwin-aarch64.tar.gz" -C ~/.local/bin dprox

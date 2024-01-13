@@ -2,11 +2,11 @@ version: 2.1
 jobs:
   build-x86_64:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: medium
     environment:
       - STACK_VER: 2.13.1
-      - DOCKER_REPO: bjin/stack-docker:9.4.8
+      - DOCKER_REPO: glcr.b-data.ch/ghc/ghc-musl:9.6.3
       - DOCKER_EXE: image
       - GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
     steps:
@@ -50,11 +50,11 @@ jobs:
             - ~/.stack
   build-aarch64:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
     resource_class: arm.medium
     environment:
       - STACK_VER: 2.13.1
-      - DOCKER_REPO: bjin/stack-docker-aarch64:9.4.8
+      - DOCKER_REPO: glcr.b-data.ch/ghc/ghc-musl:9.6.3
       - DOCKER_EXE: image
       - GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
     steps:
