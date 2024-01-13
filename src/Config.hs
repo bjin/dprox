@@ -1,6 +1,7 @@
 -- SPDX-License-Identifier: BSD-3-Clause
 --
 -- Copyright (C) 2019 Bin Jin. All Rights Reserved.
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Config
   ( Config (..)
@@ -41,6 +42,10 @@ data GlobalConfig = GlobalConfig
     , loglevel      :: LogLevel
     , ipsetMatch    :: IPSetMatch
     , ipsetServer   :: Maybe (IP, Maybe PortNumber)
+#ifdef OS_UNIX
+    , user          :: Maybe String
+    , group         :: Maybe String
+#endif
     } deriving (Eq, Show)
 
 type IPMask = AddrRange IPv4
@@ -177,6 +182,10 @@ globalOption = GlobalConfig <$> portOption
                             <*> loglevelOption
                             <*> ipsetMatchOption
                             <*> ipsetServerOption
+#ifdef OS_UNIX
+                            <*> userOption
+                            <*> groupOption
+#endif
   where
     portOption = optional $ option auto
         ( long "port"
@@ -225,6 +234,20 @@ globalOption = GlobalConfig <$> portOption
     ipsetMatchReader "any"         = Just AnyMatch
     ipsetMatchReader "notallmatch" = Just NotAllMatch
     ipsetMatchReader _             = Nothing
+
+#ifdef OS_UNIX
+    userOption = optional $ strOption
+        ( long "user"
+       <> short 'u'
+       <> metavar "nobody"
+       <> help "drop root priviledge and setuid to the specified user (like nobody)")
+
+    groupOption = optional $ strOption
+        ( long "group"
+       <> short 'g'
+       <> metavar "nogroup"
+       <> help "drop root priviledge and setgid to the specified group")
+#endif
 
 configFileOption :: Parser [FilePath]
 configFileOption = many $ strOption

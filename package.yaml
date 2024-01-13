@@ -43,9 +43,6 @@ default-extensions:
 
 ghc-options:
 - -Wall
-- -threaded
-- -rtsopts
-- -with-rtsopts=-N
 
 when:
 - condition: flag(static)
@@ -53,7 +50,7 @@ when:
 
 executables:
   dprox:
-    main:                Main.hs
+    main: Main.hs
     source-dirs:
     - src
     other-modules:
@@ -62,10 +59,19 @@ executables:
     - LRU
     - Log
     - Paths_dprox
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    when:
+    - condition: '!os(windows)'
+      cpp-options: -DOS_UNIX
+      dependencies:
+      - unix
 
 tests:
   dprox-test:
-    main:                Test.hs
+    main: Test.hs
     source-dirs:
     - src
     - test
