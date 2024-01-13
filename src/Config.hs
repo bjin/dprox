@@ -55,7 +55,7 @@ data Config = Server (Maybe DNS.Domain) IP (Maybe PortNumber)
 data IPSetMatch = NoneMatch
                 | AllMatch
                 | AnyMatch
-                | AnyNotMatch
+                | NotAllMatch
     deriving (Eq, Show)
 
 getConfig :: IO (GlobalConfig, [Config])
@@ -210,7 +210,7 @@ globalOption = GlobalConfig <$> portOption
 
     ipsetMatchOption = option (maybeReader ipsetMatchReader)
         ( long "ipset-match"
-       <> metavar "<none|all|any|anynotmatch>"
+       <> metavar "<none|all|any|notallmatch>"
        <> value AnyMatch
        <> help ("matching policy for --ipset (default value: any). Note that the matching procedure will " ++
                 "be performed only on DNS response with at least one IPv4 address."))
@@ -223,7 +223,7 @@ globalOption = GlobalConfig <$> portOption
     ipsetMatchReader "none"        = Just NoneMatch
     ipsetMatchReader "all"         = Just AllMatch
     ipsetMatchReader "any"         = Just AnyMatch
-    ipsetMatchReader "anynotmatch" = Just AnyNotMatch
+    ipsetMatchReader "notallmatch" = Just NotAllMatch
     ipsetMatchReader _             = Nothing
 
 configFileOption :: Parser [FilePath]

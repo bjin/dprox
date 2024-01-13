@@ -113,13 +113,13 @@ handleIPSet [] _ _ _ = id
 handleIPSet _ _ Nothing _ = id
 handleIPSet ipset match (Just ipsetResolver) cache = handleWithResolver
   where
-    iproute = IP.fromList $ zip ipset $ repeat ()
+    iproute = IP.fromList $ map (, ()) ipset
     inIPSet ip = isJust $ IP.lookup (IP.makeAddrRange ip 32) iproute
 
     check NoneMatch   = not . any inIPSet
     check AllMatch    = all inIPSet
     check AnyMatch    = any inIPSet
-    check AnyNotMatch = any (not.inIPSet)
+    check NotAllMatch = not.all inIPSet
 
     handleWithResolver resolver qd qt@DNS.A = do
         cachedInIPSet <- isJust <$> lookupCache qd cache
@@ -230,7 +230,7 @@ main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) lo
         createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)
         createResolvers [] m = let serverRoute' = fmap (`M.lookup`m) serverRoute
-                                   ipsetResolver = join $ fmap (`M.lookup`m) ipsetServerPort
+                                   ipsetResolver = (`M.lookup` m) =<< ipsetServerPort
                                    resolver = handleIPSet ipset ipsetMatch ipsetResolver ipsetCache $
                                               resolverCache $
                                               handleAddressAndHosts addressRoute hostsRoute $
