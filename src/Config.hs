@@ -219,7 +219,7 @@ globalOption = GlobalConfig <$> portOption
 
     ipsetMatchOption = option (maybeReader ipsetMatchReader)
         ( long "ipset-match"
-       <> metavar "<none|all|any|notallmatch>"
+       <> metavar "<none|all|any|notall>"
        <> value AnyMatch
        <> help ("matching policy for --ipset (default value: any). Note that the matching procedure will " ++
                 "be performed only on DNS response with at least one IPv4 address."))
@@ -229,11 +229,11 @@ globalOption = GlobalConfig <$> portOption
        <> metavar "<ipaddr>[#port]"
        <> help "DNS server to use if ipset matches DNS response")
 
-    ipsetMatchReader "none"        = Just NoneMatch
-    ipsetMatchReader "all"         = Just AllMatch
-    ipsetMatchReader "any"         = Just AnyMatch
-    ipsetMatchReader "notallmatch" = Just NotAllMatch
-    ipsetMatchReader _             = Nothing
+    ipsetMatchReader "none"   = Just NoneMatch
+    ipsetMatchReader "all"    = Just AllMatch
+    ipsetMatchReader "any"    = Just AnyMatch
+    ipsetMatchReader "notall" = Just NotAllMatch
+    ipsetMatchReader _        = Nothing
 
 #ifdef OS_UNIX
     userOption = optional $ strOption

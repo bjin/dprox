@@ -68,7 +68,7 @@ The exact matching policy can be configured using the `ipset-match`. These optio
 
 ```
 --ipset <ipmask>
---ipset-match <none|all|any|notallmatch>
+--ipset-match <none|all|any|notall>
 --ipset-server <ipaddr>[#port]
 --ipset-file <file>
 ```
