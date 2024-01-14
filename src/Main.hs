@@ -252,7 +252,9 @@ main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) lo
         rs <- DNS.makeResolvSeed v
         return (k, rs)
 
+#ifdef OS_UNIX
     void $ dropRootPriviledge logger user group
+#endif
 
     resolverCache <- makeResolverCache cacheSize cacheTTL
     ipsetCache <- newCache 4096 maxBound
