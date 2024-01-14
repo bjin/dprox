@@ -1,12 +1,15 @@
 -- SPDX-License-Identifier: BSD-3-Clause
 --
 -- Copyright (C) 2019 Bin Jin. All Rights Reserved.
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections       #-}
-module Main where
+module Main
+  ( main
+  ) where
 
 import Control.Concurrent        (forkIO, threadDelay)
 import Control.Exception         (SomeException, handle)
