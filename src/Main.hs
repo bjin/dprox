@@ -13,7 +13,7 @@ import Control.Exception         (SomeException, handle)
 import Control.Monad             (forM, forever, join, void)
 import Data.ByteString           (ByteString)
 import Data.Foldable             qualified as F
-import Data.Hashable             (Hashable (..))
+import Data.Hashable             (Hashable(..))
 import Data.IP                   qualified as IP
 import Data.IP.RouteTable        qualified as IP
 import Data.Map                  qualified as M

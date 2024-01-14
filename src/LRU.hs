@@ -15,7 +15,7 @@ import Data.Hashable          (Hashable)
 import Data.HashPSQ           qualified as PQ
 import Data.Int               (Int64)
 import Data.IORef             (IORef, atomicModifyIORef', newIORef, readIORef)
-import Data.Time.Clock.System (SystemTime (..), getSystemTime)
+import Data.Time.Clock.System (SystemTime(..), getSystemTime)
 import Network.DNS            (TTL)
 
 type Time = Int64

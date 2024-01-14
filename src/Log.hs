@@ -4,11 +4,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Log
-  ( LogLevel (..)
+  ( LogLevel(..)
   , LogStr
-  , LogType' (..)
+  , LogType'(..)
   , Logger
-  , ToLogStr (..)
+  , ToLogStr(..)
   , logLevelReader
   , pureLogger
   , withLogger

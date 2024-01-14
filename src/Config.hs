@@ -4,11 +4,11 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Config
-  ( Config (..)
-  , GlobalConfig (..)
-  , IP (..)
+  ( Config(..)
+  , GlobalConfig(..)
+  , IP(..)
   , IPMask
-  , IPSetMatch (..)
+  , IPSetMatch(..)
   , PortNumber
   , getConfig
   , invalidIPAddress
@@ -21,7 +21,7 @@ import Data.Attoparsec.ByteString       qualified as P
 import Data.Attoparsec.ByteString.Char8 qualified as P8
 import Data.ByteString                  qualified as BS
 import Data.ByteString.Char8            qualified as BS8
-import Data.IP                          (AddrRange, IP (..), IPv4)
+import Data.IP                          (AddrRange, IP(..), IPv4)
 import Data.Maybe                       (catMaybes, fromMaybe, isNothing)
 import Data.Streaming.Network           (HostPreference)
 import Data.String                      (fromString)
