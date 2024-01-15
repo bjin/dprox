@@ -46,7 +46,7 @@ jobs:
       - run:
           name: Cleanup
           command: |
-            rm -rf ~/.stack/pantry
+            rm -rf ~/.stack/pantry/hackage
       - save_cache:
           name: Cache Dependencies
           key: cci-dprox-x86_64-{{ checksum ".stackage-resolver" }}
@@ -98,7 +98,7 @@ jobs:
       - run:
           name: Cleanup
           command: |
-            rm -rf ~/.stack/pantry
+            rm -rf ~/.stack/pantry/hackage
       - save_cache:
           name: Cache Dependencies
           key: cci-dprox-aarch64-{{ checksum ".stackage-resolver" }}
@@ -154,7 +154,7 @@ jobs:
       - run:
           name: Cleanup
           command: |
-            rm -rf ~/AppData/Roaming/stack/pantry ~/AppData/Roaming/stack/programs
+            rm -rf ~/AppData/Roaming/stack/pantry/hackage ~/AppData/Roaming/stack/programs
       - save_cache:
           name: Cache Dependencies
           key: cci-dprox-windows-{{ checksum ".stackage-resolver" }}
