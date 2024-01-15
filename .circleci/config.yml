@@ -16,9 +16,10 @@ jobs:
             docker create --name stack-docker "$DOCKER_REPO"
             docker cp stack-docker:/usr/local/bin/stack .
             docker rm stack-docker
+            grep -F resolver stack.yaml | tee .stackage-resolver
       - restore_cache:
           name: Restore Cached Dependencies
-          key: cci-dprox-x86_64-{{ checksum "stack.yaml" }}
+          key: cci-dprox-x86_64-{{ checksum ".stackage-resolver" }}
       - run:
           name: Build
           command: |
@@ -42,9 +43,13 @@ jobs:
       - store_artifacts:
           path: ~/release
           destination: release
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf ~/.stack/pantry
       - save_cache:
           name: Cache Dependencies
-          key: cci-dprox-x86_64-{{ checksum "stack.yaml" }}
+          key: cci-dprox-x86_64-{{ checksum ".stackage-resolver" }}
           paths:
             - ~/.stack
   build-aarch64:
@@ -63,9 +68,10 @@ jobs:
             docker create --name stack-docker "$DOCKER_REPO"
             docker cp stack-docker:/usr/local/bin/stack .
             docker rm stack-docker
+            grep -F resolver stack.yaml | tee .stackage-resolver
       - restore_cache:
           name: Restore Cached Dependencies
-          key: cci-dprox-aarch64-{{ checksum "stack.yaml" }}
+          key: cci-dprox-aarch64-{{ checksum ".stackage-resolver" }}
       - run:
           name: Build
           command: |
@@ -89,9 +95,13 @@ jobs:
       - store_artifacts:
           path: ~/release
           destination: release
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf ~/.stack/pantry
       - save_cache:
           name: Cache Dependencies
-          key: cci-dprox-aarch64-{{ checksum "stack.yaml" }}
+          key: cci-dprox-aarch64-{{ checksum ".stackage-resolver" }}
           paths:
             - ~/.stack
   build-windows:
@@ -104,9 +114,13 @@ jobs:
       - GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
     steps:
       - checkout
+      - run:
+          name: Generate .stackage-resolver
+          command: |
+            grep -F resolver stack.yaml | tee .stackage-resolver
       - restore_cache:
           name: Restore Cached Dependencies
-          key: cci-dprox-windows-{{ checksum "stack.yaml" }}
+          key: cci-dprox-windows-{{ checksum ".stackage-resolver" }}
       - run:
           name: Prepare environment
           command: |
@@ -137,9 +151,13 @@ jobs:
       - store_artifacts:
           path: ~/release
           destination: release
+      - run:
+          name: Cleanup
+          command: |
+            rm -rf ~/AppData/Roaming/stack/pantry ~/AppData/Roaming/stack/programs
       - save_cache:
           name: Cache Dependencies
-          key: cci-dprox-windows-{{ checksum "stack.yaml" }}
+          key: cci-dprox-windows-{{ checksum ".stackage-resolver" }}
           paths:
             - ~/AppData/Roaming/stack
 workflows:
