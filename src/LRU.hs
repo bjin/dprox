@@ -50,7 +50,7 @@ purgeQueue now LRUQueue{..} = LRUQueue (queueSize - length expired) newQ
 data LRUCache k v = LRUCache
     { cacheSize  :: !Int
     , timeToLive :: !TTL
-    , cacheRef   :: IORef (LRUQueue k v)
+    , cacheRef   :: !(IORef (LRUQueue k v))
     }
 
 newCache :: Int -> TTL -> IO (LRUCache k v)

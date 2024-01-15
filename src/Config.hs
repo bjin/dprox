@@ -35,26 +35,26 @@ import Log
 import Paths_dprox
 
 data GlobalConfig = GlobalConfig
-    { localPort     :: Maybe PortNumber
-    , listenAddress :: Maybe HostPreference
-    , cacheSize     :: Int
-    , cacheTTL      :: DNS.TTL
-    , loglevel      :: LogLevel
-    , ipsetMatch    :: IPSetMatch
-    , ipsetServer   :: Maybe (IP, Maybe PortNumber)
+    { localPort     :: !(Maybe PortNumber)
+    , listenAddress :: !(Maybe HostPreference)
+    , cacheSize     :: !Int
+    , cacheTTL      :: !DNS.TTL
+    , loglevel      :: !LogLevel
+    , ipsetMatch    :: !IPSetMatch
+    , ipsetServer   :: !(Maybe (IP, Maybe PortNumber))
 #ifdef OS_UNIX
-    , user          :: Maybe String
-    , group         :: Maybe String
+    , user          :: !(Maybe String)
+    , group         :: !(Maybe String)
 #endif
     } deriving (Eq, Show)
 
 type IPMask = AddrRange IPv4
 
-data Config = Server (Maybe DNS.Domain) IP (Maybe PortNumber)
-            | Address DNS.Domain IP
-            | Hosts DNS.Domain IP
-            | BogusNX IP
-            | IPSet IPMask
+data Config = Server !(Maybe DNS.Domain) !IP !(Maybe PortNumber)
+            | Address !DNS.Domain !IP
+            | Hosts !DNS.Domain !IP
+            | BogusNX !IP
+            | IPSet !IPMask
     deriving (Eq, Show)
 
 data IPSetMatch = NoneMatch
