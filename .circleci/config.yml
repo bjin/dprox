@@ -2,10 +2,10 @@ version: 2.1
 jobs:
   build-x86_64:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: medium
     environment:
-      - DOCKER_REPO: benz0li/ghc-musl:9.6.5
+      - DOCKER_REPO: benz0li/ghc-musl:9.6.6
       - GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
     steps:
       - checkout
@@ -54,10 +54,10 @@ jobs:
             - ~/.stack
   build-aarch64:
     machine:
-      image: ubuntu-2204:current
+      image: ubuntu-2404:current
     resource_class: arm.medium
     environment:
-      - DOCKER_REPO: benz0li/ghc-musl:9.6.5
+      - DOCKER_REPO: benz0li/ghc-musl:9.6.6
       - GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
     steps:
       - checkout
@@ -106,11 +106,11 @@ jobs:
             - ~/.stack
   build-windows:
     machine:
-      image: windows-server-2022-gui:current
+      image: default
       shell: bash.exe
     resource_class: windows.medium
     environment:
-      - STACK_VER: 2.15.7
+      - STACK_VER: 3.1.1
       - GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
     steps:
       - checkout

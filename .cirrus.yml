@@ -1,9 +1,9 @@
 task:
   name: build-macos-aarch64
   macos_instance:
-    image: ghcr.io/cirruslabs/macos-sonoma-base:latest
+    image: ghcr.io/cirruslabs/macos-runner:sonoma
   env:
-    STACK_VER: 2.15.7
+    STACK_VER: 3.1.1
     STACK_BIN_URL: https://github.com/commercialhaskell/stack/releases/download/v${STACK_VER}/stack-${STACK_VER}-osx-aarch64.tar.gz
     GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
   stack_cache:
