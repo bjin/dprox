@@ -5,7 +5,7 @@ jobs:
       image: ubuntu-2404:current
     resource_class: medium
     environment:
-      - DOCKER_REPO: benz0li/ghc-musl:9.6.6
+      - DOCKER_REPO: benz0li/ghc-musl:9.10.3
       - GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
     steps:
       - checkout
@@ -25,14 +25,14 @@ jobs:
           command: |
             ./stack \
                 --no-terminal --no-interleaved-output --system-ghc --no-install-ghc \
-                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe image \
+                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe image --no-docker-auto-pull \
                 install --flag dprox:static $GHC_OPTIONS
       - run:
-          name: Run tests
+          name: Test
           command: |
             ./stack \
                 --no-terminal --no-interleaved-output --system-ghc --no-install-ghc \
-                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe image \
+                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe image --no-docker-auto-pull \
                 test --flag dprox:static $GHC_OPTIONS
       - run:
           name: Package executable
@@ -57,7 +57,7 @@ jobs:
       image: ubuntu-2404:current
     resource_class: arm.medium
     environment:
-      - DOCKER_REPO: benz0li/ghc-musl:9.6.6
+      - DOCKER_REPO: benz0li/ghc-musl:9.10.3
       - GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
     steps:
       - checkout
@@ -77,14 +77,14 @@ jobs:
           command: |
             ./stack \
                 --no-terminal --no-interleaved-output --system-ghc --no-install-ghc \
-                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe image \
+                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe image --no-docker-auto-pull \
                 install --flag dprox:static $GHC_OPTIONS
       - run:
-          name: Run tests
+          name: Test
           command: |
             ./stack \
                 --no-terminal --no-interleaved-output --system-ghc --no-install-ghc \
-                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe image \
+                --docker --docker-repo "$DOCKER_REPO" --docker-stack-exe image --no-docker-auto-pull \
                 test --flag dprox:static $GHC_OPTIONS
       - run:
           name: Package executable
@@ -110,7 +110,7 @@ jobs:
       shell: bash.exe
     resource_class: windows.medium
     environment:
-      - STACK_VER: 3.1.1
+      - STACK_VER: 3.9.1
       - GHC_OPTIONS: --ghc-options -split-sections --ghc-options -O --ghc-options -optc-Os
     steps:
       - checkout
@@ -137,7 +137,7 @@ jobs:
                 --no-terminal --no-interleaved-output \
                 install --flag dprox:static $GHC_OPTIONS
       - run:
-          name: Run tests
+          name: Test
           command: |
             ./stack.exe --skip-msys --ghc-variant int-native \
                 --no-terminal --no-interleaved-output \
