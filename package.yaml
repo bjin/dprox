@@ -66,6 +66,7 @@ executables:
     - DomainRoute
     - LRU
     - Log
+    - Unix
     - Paths_dprox
     ghc-options:
     - -threaded
@@ -85,5 +86,7 @@ tests:
     - test
     other-modules:
     - DomainRoute
+    - Log
+    - Unix
     dependencies:
     - hspec

@@ -2,7 +2,6 @@
 --
 -- Copyright (C) 2019 Bin Jin. All Rights Reserved.
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -27,19 +26,13 @@ import Data.Version              (showVersion)
 import Network.DNS               qualified as DNS
 import Network.Socket.ByteString (recvFrom, sendTo)
 
-#ifdef OS_UNIX
-import Control.Exception    (catch)
-import Control.Monad        (forM_, when)
-import System.Exit
-import System.Posix.Process
-import System.Posix.User
-#endif
 
 import Config
 import DomainRoute
 import Log
 import LRU
 import Paths_dprox
+import Unix
 
 instance Hashable DNS.TYPE where
     hashWithSalt s = hashWithSalt s . DNS.fromTYPE
@@ -172,36 +165,6 @@ makeResolverCache sz ttl = do
                             return (Right (ttl, v))
     return process
 
-#ifdef OS_UNIX
-dropRootPriviledge :: Logger -> Maybe String -> Maybe String -> IO Bool
-dropRootPriviledge _ Nothing Nothing = return False
-dropRootPriviledge logger user group = do
-    currentUser <- getRealUserID
-    currentGroup <- getRealGroupID
-    if currentUser /= 0 || currentGroup /= 0
-      then do
-        logger WARN $ "Unable to setuid/setgid without root priviledge" <>
-                      ", userID=" <> toLogStr (show currentUser) <>
-                      ", groupID=" <> toLogStr (show currentGroup)
-        return False
-      else do
-        let abort msg = logger ERROR msg >> exitImmediately (ExitFailure 1)
-        forM_ group $ \group' -> do
-            logger INFO $ "setgid to " <> toLogStr group'
-            getGroupEntryForName group' >>= setGroupID . groupID
-            changedGroup <- getRealGroupID
-            when (changedGroup == currentGroup) $ abort "failed to setgid, aborting"
-        forM_ user $ \user' -> do
-            logger INFO $ "setuid to " <> toLogStr user'
-            getUserEntryForName user' >>= setUserID . userID
-            changedUser <- getRealUserID
-            when (changedUser == currentUser) $ abort "failed to setuid, aborting"
-        logger DEBUG "testing setuid(0), verify that root priviledge can't be regranted"
-        catch (setUserID 0) $ \(_ :: SomeException) -> logger DEBUG "setuid(0) failed as expected"
-        changedUser <- getRealUserID
-        when (changedUser == 0) $ abort "unable to drop root priviledge, aborting"
-        return True
-#endif
 
 main :: IO ()
 main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) loglevel $ \logger -> do
@@ -255,9 +218,7 @@ main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) lo
         rs <- DNS.makeResolvSeed v
         return (k, rs)
 
-#ifdef OS_UNIX
     void $ dropRootPriviledge logger user group
-#endif
 
     resolverCache <- makeResolverCache cacheSize cacheTTL
     ipsetCache <- newCache 4096 maxBound

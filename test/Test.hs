@@ -10,6 +10,7 @@ import Data.Char             (toUpper)
 import Test.Hspec
 
 import DomainRoute
+import Unix
 
 main :: IO ()
 main = hspec $ do
@@ -54,4 +55,23 @@ main = hspec $ do
 
         it "handles the longest match" $ forM_ [("c.d.red.com", query "red.com"), ("www.a.b.c.d.red.com", query "a.b.c.d.red.com")] $ \(domain, ans) ->
             getDomainRouteByPrefix dr1 domain `shouldBe` Just ans
+
+    describe "planPrivilegeDrop" $ do
+        let alice = ResolvedUser "alice" 1000 10
+            primary = ResolvedGroup "primary" 10 ["alice"]
+            target = ResolvedGroup "target" 20 []
+            extra = ResolvedGroup "extra" 30 ["alice"]
+            unrelated = ResolvedGroup "unrelated" 40 ["bob"]
+
+        it "uses the requested group when both user and group are configured" $
+            planPrivilegeDrop (Just alice) (Just target) [primary, extra, unrelated]
+                `shouldBe` PrivilegeDropPlan (Just "alice") (Just 1000) (Just "target") (Just 20) [20, 10, 30]
+
+        it "falls back to the user's primary group when no group is configured" $
+            planPrivilegeDrop (Just alice) Nothing [primary, extra, unrelated]
+                `shouldBe` PrivilegeDropPlan (Just "alice") (Just 1000) Nothing (Just 10) [10, 30]
+
+        it "does not assign supplementary groups for group-only drops" $
+            planPrivilegeDrop Nothing (Just target) [primary, extra, unrelated]
+                `shouldBe` PrivilegeDropPlan Nothing Nothing (Just "target") (Just 20) []
 
