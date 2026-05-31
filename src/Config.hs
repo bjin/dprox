@@ -43,10 +43,8 @@ data GlobalConfig = GlobalConfig
     , loglevel      :: !LogLevel
     , ipsetMatch    :: !IPSetMatch
     , ipsetServer   :: !(Maybe (IP, Maybe PortNumber))
-#ifdef OS_UNIX
     , user          :: !(Maybe String)
     , group         :: !(Maybe String)
-#endif
     }
   deriving (Eq, Show)
 
@@ -187,6 +185,9 @@ globalOption = GlobalConfig <$> portOption
 #ifdef OS_UNIX
                             <*> userOption
                             <*> groupOption
+#else
+                            <*> pure Nothing
+                            <*> pure Nothing
 #endif
   where
     portOption = optional $ option auto
