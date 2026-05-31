@@ -24,7 +24,7 @@ data LogLevel = TRACE
               | WARN
               | ERROR
               | NONE
-    deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord)
 
 logLevelReader :: String -> Maybe LogLevel
 logLevelReader "trace" = Just TRACE

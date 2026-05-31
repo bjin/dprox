@@ -3,6 +3,7 @@
 -- Copyright (C) 2021 Bin Jin. All Rights Reserved.
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections   #-}
+
 module LRU
   ( LRUCache
   , lookupCache
@@ -26,7 +27,8 @@ getTime = systemSeconds <$> getSystemTime
 data LRUQueue k v = LRUQueue
     { queueSize :: !Int
     , queue     :: !(PQ.HashPSQ k Time v)
-    } deriving (Show)
+    }
+  deriving (Show)
 
 newQueue :: LRUQueue k v
 newQueue = LRUQueue 0 PQ.empty
@@ -39,7 +41,7 @@ updateQueue cacheSize expireTime k v LRUQueue{..} = case PQ.insertView k expireT
     (Just _, newQ)  -> LRUQueue queueSize newQ
     (Nothing, newQ) -> if queueSize >= cacheSize
                        then LRUQueue queueSize (PQ.deleteMin newQ)
-                       else LRUQueue (queueSize+1) newQ
+                       else LRUQueue (queueSize + 1) newQ
 
 purgeQueue :: (Ord k, Hashable k) => Time -> LRUQueue k v -> LRUQueue k v
 purgeQueue _ q@(LRUQueue 0 _) = q
@@ -69,9 +71,9 @@ lookupCache k LRUCache{..} = do
 updateCache :: (Ord k, Hashable k) => k -> v -> LRUCache k v -> IO ()
 updateCache k v LRUCache{..} = do
     now <- getTime
-    atomicModifyIORef' cacheRef ((,()) . updateQueue cacheSize (now+fromIntegral timeToLive) k v)
+    atomicModifyIORef' cacheRef ((, ()) . updateQueue cacheSize (now + fromIntegral timeToLive) k v)
 
 purgeCache :: (Ord k, Hashable k) => LRUCache k v -> IO ()
 purgeCache LRUCache{..} = do
     now <- getTime
-    atomicModifyIORef' cacheRef ((,()) . purgeQueue now)
+    atomicModifyIORef' cacheRef ((, ()) . purgeQueue now)

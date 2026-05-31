@@ -6,6 +6,7 @@
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections       #-}
+
 module Main
   ( main
   ) where
@@ -25,7 +26,6 @@ import Data.Streaming.Network    (bindPortUDP)
 import Data.Version              (showVersion)
 import Network.DNS               qualified as DNS
 import Network.Socket.ByteString (recvFrom, sendTo)
-
 
 import Config
 import DomainRoute
@@ -130,18 +130,18 @@ handleIPSet ipset match (Just ipsetResolver) cache = handleWithResolver
     handleWithResolver resolver qd qt@DNS.A = do
         cachedInIPSet <- isJust <$> lookupCache qd cache
         if cachedInIPSet
-          then fmap (1,) <$> ipsetResolver qd qt
-          else do
+        then fmap (1,) <$> ipsetResolver qd qt
+        else do
             res <- resolver qd qt
             case res of
                 Left _        -> return res
                 Right (_, rs) -> do
                     let ipv4s = [ipv4 | DNS.RD_A ipv4 <- rs]
                     if not (null ipv4s) && check match ipv4s
-                      then do
+                    then do
                         updateCache qd () cache
                         fmap (1,) <$> ipsetResolver qd qt
-                      else return res
+                    else return res
     handleWithResolver resolver qd qt = resolver qd qt
 
 makeResolverCache :: Int -> DNS.TTL -> IO (Resolver -> CachedResolver)
@@ -164,7 +164,6 @@ makeResolverCache sz ttl = do
                             updateCache k v cache
                             return (Right (ttl, v))
     return process
-
 
 main :: IO ()
 main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) loglevel $ \logger -> do
@@ -236,9 +235,9 @@ main = getConfig >>= \(GlobalConfig{..}, conf) -> withLogger (LogStdout 4096) lo
                             Left err    -> do
                                 logger DEBUG $ "dns process error: " <> toLogStr (show err) <> " from: " <> toLogStr (show addr)
 
-        createResolvers ((k,v):xs) m = DNS.withResolver v $ \rs ->
+        createResolvers ((k, v):xs) m = DNS.withResolver v $ \rs ->
             createResolvers xs (M.insert k (DNS.lookup rs) m)
-        createResolvers [] m = let serverRoute' = fmap (`M.lookup`m) serverRoute
+        createResolvers [] m = let serverRoute' = fmap (`M.lookup` m) serverRoute
                                    ipsetResolver = (`M.lookup` m) =<< ipsetServerPort
                                    resolver = handleIPSet ipset ipsetMatch ipsetResolver ipsetCache $
                                               resolverCache $

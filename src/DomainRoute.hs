@@ -2,6 +2,7 @@
 --
 -- Copyright (C) 2019 Bin Jin. All Rights Reserved.
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module DomainRoute
   ( DomainRoute
   , getDomainRouteByPrefix
@@ -15,7 +16,7 @@ import Data.Trie.Convenience qualified as T
 import Network.DNS           qualified as DNS
 
 newtype DomainRoute a = DomainRoute (T.Trie a)
-    deriving (Eq, Show, Functor, Foldable)
+  deriving (Eq, Show, Functor, Foldable)
 
 normalize :: DNS.Domain -> BS.ByteString
 normalize d
@@ -25,7 +26,7 @@ normalize d
 newDomainRoute :: (a -> a -> a) -> [(DNS.Domain, a)] -> DomainRoute a
 newDomainRoute merge ds = DomainRoute (T.fromListWithL' merge ds')
   where
-    ds' =  [(normalize domain, record) | (domain, record) <- ds]
+    ds' = [(normalize domain, record) | (domain, record) <- ds]
 
 getDomainRouteExact :: DomainRoute a -> DNS.Domain -> Maybe a
 getDomainRouteExact (DomainRoute trie) d = T.lookup (normalize d) trie

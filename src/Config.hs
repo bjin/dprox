@@ -3,6 +3,7 @@
 -- Copyright (C) 2019 Bin Jin. All Rights Reserved.
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module Config
   ( Config(..)
   , GlobalConfig(..)
@@ -46,7 +47,8 @@ data GlobalConfig = GlobalConfig
     , user          :: !(Maybe String)
     , group         :: !(Maybe String)
 #endif
-    } deriving (Eq, Show)
+    }
+  deriving (Eq, Show)
 
 type IPMask = AddrRange IPv4
 
@@ -55,13 +57,13 @@ data Config = Server !(Maybe DNS.Domain) !IP !(Maybe PortNumber)
             | Hosts !DNS.Domain !IP
             | BogusNX !IP
             | IPSet !IPMask
-    deriving (Eq, Show)
+  deriving (Eq, Show)
 
 data IPSetMatch = NoneMatch
                 | AllMatch
                 | AnyMatch
                 | NotAllMatch
-    deriving (Eq, Show)
+  deriving (Eq, Show)
 
 getConfig :: IO (GlobalConfig, [Config])
 getConfig = do
