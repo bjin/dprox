@@ -15,7 +15,7 @@ module Config
   , invalidIPAddress
   ) where
 
-import Control.Exception                (SomeException, handle)
+import Control.Exception                (IOException, try)
 import Control.Monad                    (when)
 import Data.Attoparsec.ByteString       ((<?>))
 import Data.Attoparsec.ByteString       qualified as P
@@ -23,13 +23,15 @@ import Data.Attoparsec.ByteString.Char8 qualified as P8
 import Data.ByteString                  qualified as BS
 import Data.ByteString.Char8            qualified as BS8
 import Data.IP                          (AddrRange, IP(..), IPv4)
-import Data.Maybe                       (catMaybes, fromMaybe, isNothing)
+import Data.Maybe                       (fromMaybe, isNothing)
 import Data.Streaming.Network           (HostPreference)
 import Data.String                      (fromString)
 import Data.Version                     (showVersion)
+import Data.Word                        (Word8)
 import Network.DNS                      qualified as DNS
 import Network.Socket                   (PortNumber)
 import Options.Applicative
+import System.Exit                      (die)
 import Text.Read                        (readMaybe)
 
 import Log
@@ -65,88 +67,189 @@ data IPSetMatch = NoneMatch
 
 getConfig :: IO (GlobalConfig, [Config])
 getConfig = do
-    (confs, globalConfigs, configFiles, hostsFiles, ipsetFiles) <- execParser opts
-    confs1 <- concat <$> mapM readConfigFromFile configFiles
-    confs2 <- concat <$> mapM readHostsFromFile hostsFiles
-    confs3 <- concat <$> mapM readIPSetFromFile ipsetFiles
-    return (globalConfigs, confs1 ++ confs2 ++ confs3 ++ confs)
+    (confs, globalConfigs, configFiles, noHosts, hostsFiles, ipsetFiles) <- execParser opts
+    confs1 <- concat <$> mapM (readParsedConfigFile "config file" parseConfigFile) configFiles
+    confs2 <- readDefaultHostsFile noHosts
+    confs3 <- concat <$> mapM (readParsedConfigFile "hosts file" parseHostsFile) hostsFiles
+    confs4 <- concat <$> mapM (readParsedConfigFile "ipset file" parseIPSetFile) ipsetFiles
+    return (globalConfigs, confs1 ++ confs2 ++ confs3 ++ confs4 ++ confs)
   where
-    opts = info ((,,,,) <$> plainOption <*> globalOption <*> configFileOption
-                        <*> hostsFilesOption <*> ipsetFileOption <**> ver <**> helper)
+    opts = info ((,,,,,) <$> plainOption <*> globalOption <*> configFileOption
+                         <*> noHostsOption <*> hostsFilesOption <*> ipsetFileOption <**> ver <**> helper)
       ( fullDesc <> progDesc desc )
 
     desc = "a lightweight DNS proxy server, supports a small subset of dnsmasq options"
     ver = infoOption (showVersion version) (long "version" <> help "show version")
 
-    readConfigFromFile file = handle handler (parseConfigFile <$> BS.readFile file)
-    readHostsFromFile file = handle handler (parseHostsFile <$> BS.readFile file)
-    readIPSetFromFile file = handle handler (parseIPSetFile <$> BS.readFile file)
+    readDefaultHostsFile True = return []
+    readDefaultHostsFile False = readOptionalParsedConfigFile "hosts file" parseHostsFile "/etc/hosts"
 
-    handler :: SomeException -> IO [Config]
-    handler _ = return []
+readParsedConfigFile
+    :: String
+    -> (BS.ByteString -> Either String [Config])
+    -> FilePath
+    -> IO [Config]
+readParsedConfigFile sourceName parser file = do
+    readResult <- try (BS.readFile file) :: IO (Either IOException BS.ByteString)
+    case readResult of
+        Left exception -> die (readConfigError sourceName file exception)
+        Right content  -> parsedConfig sourceName file parser content
 
-parseConfigFile :: BS.ByteString -> [Config]
-parseConfigFile bs = case P.parseOnly parseFile bs of
-    Left msg -> error msg
-    Right r  -> r
+readOptionalParsedConfigFile
+    :: String
+    -> (BS.ByteString -> Either String [Config])
+    -> FilePath
+    -> IO [Config]
+readOptionalParsedConfigFile sourceName parser file = do
+    readResult <- try (BS.readFile file) :: IO (Either IOException BS.ByteString)
+    case readResult of
+        Left _        -> return []
+        Right content -> parsedConfig sourceName file parser content
+
+parsedConfig
+    :: String
+    -> FilePath
+    -> (BS.ByteString -> Either String [Config])
+    -> BS.ByteString
+    -> IO [Config]
+parsedConfig sourceName file parser content =
+    case parser content of
+        Left parseError -> die ("failed to parse " ++ sourceName ++ " " ++ file ++ ": " ++ parseError)
+        Right confs     -> return confs
+
+readConfigError :: String -> FilePath -> IOException -> String
+readConfigError sourceName file exception =
+    "failed to read " ++ sourceName ++ " " ++ file ++ ": " ++ show exception
+
+parseConfigFile :: BS.ByteString -> Either String [Config]
+parseConfigFile = P.parseOnly (parseLines parseConfigLine)
   where
-    parseFile = catMaybes <$> P.many' (parseLine parseConfig)
+    parseConfigLine line
+        | isIgnoredLine line = Right Nothing
+        | isConfigOption "server" line = parseConfigPairLine "server" serverValue line
+        | isConfigOption "local" line = parseConfigPairLine "local" serverValue line
+        | isConfigOption "address" line = parseConfigPairLine "address" addressValue line
+        | isConfigOption "bogus-nxdomain" line = parseConfigPairLine "bogus-nxdomain" bogusNXValue line
+        | otherwise = Right Nothing
 
-    parseConfig =
-        parsePair "server" serverValue <|>
-        parsePair "local" serverValue <|>
-        parsePair "address" addressValue <|>
-        parsePair "bogus-nxdomain" bogusNXValue
-
-    parsePair optionName optionValue = do
-        _ <- P8.string optionName
-        skipSpaceTab
-        _ <- P8.char '='
-        skipSpaceTab
-        res <- optionValue
-        skipLine
-        return res
-
-parseHostsFile :: BS.ByteString -> [Config]
-parseHostsFile bs = case P.parseOnly parseFile bs of
-    Left msg -> error msg
-    Right r  -> r
+parseHostsFile :: BS.ByteString -> Either String [Config]
+parseHostsFile = P.parseOnly (parseLines parseHostsLine)
   where
-    parseFile = catMaybes <$> P.many' (parseLine parseHosts)
+    parseHostsLine line
+        | isIgnoredLine line = Right Nothing
+        | startsWithIPToken line = Just <$> P.parseOnly parseHosts line
+        | otherwise = Right Nothing
 
     parseHosts = do
-        parsedIP <- ip
         skipSpaceTab
+        parsedIP <- ip
+        skipSpaceTab1
         parsedDomain <- domain
-        skipLine
         return (Hosts parsedDomain parsedIP)
 
-parseIPSetFile :: BS.ByteString -> [Config]
-parseIPSetFile bs = case P.parseOnly parseFile bs of
-    Left msg -> error msg
-    Right r  -> r
+parseIPSetFile :: BS.ByteString -> Either String [Config]
+parseIPSetFile = P.parseOnly (parseLines parseIPSetLine)
   where
-    parseFile = catMaybes <$> P.many' (parseLine parseIPSet)
+    parseIPSetLine line
+        | isIgnoredLine line = Right Nothing
+        | otherwise = Just <$> P.parseOnly parseIPSet line
 
-    parseIPSet = do
-        parsedIPSet <- ip4mask
-        skipLine
-        return (IPSet parsedIPSet)
+    parseIPSet = IPSet <$> (skipSpaceTab *> ip4mask <* skipLineRest)
 
-parseLine :: P.Parser a -> P.Parser (Maybe a)
-parseLine parser = do
+parseLines :: (BS.ByteString -> Either String (Maybe a)) -> P.Parser [a]
+parseLines parseLineValue = go (1 :: Int) []
+  where
+    go lineNumber acc = do
+        eof <- P.atEnd
+        if eof
+        then return (reverse acc)
+        else do
+            line <- takeLine
+            case parseLineValue line of
+                Left msg                 -> fail ("line " ++ show lineNumber ++ ": " ++ msg)
+                Right Nothing            -> go (lineNumber + 1) acc
+                Right (Just parsedValue) -> go (lineNumber + 1) (parsedValue : acc)
+
+takeLine :: P.Parser BS.ByteString
+takeLine = do
+    line <- P.takeTill P8.isEndOfLine
+    skipEndOfLine
+    return line
+
+skipEndOfLine :: P.Parser ()
+skipEndOfLine = do
     eof <- P.atEnd
-    when eof $ fail "eof reached"
-    skipSpaceTab
-    (Just <$> parser) <|> (skipLine >> return Nothing)
+    if eof
+    then return ()
+    else do
+        c <- P.satisfy P8.isEndOfLine
+        when (c == char8 '\r') $ do
+            _ <- optional (P.satisfy (== char8 '\n'))
+            return ()
 
+parseConfigPairLine
+    :: BS.ByteString
+    -> P.Parser Config
+    -> BS.ByteString
+    -> Either String (Maybe Config)
+parseConfigPairLine optionName optionValue line =
+    Just <$> P.parseOnly (parseConfigPair optionName optionValue) line
+
+parseConfigPair :: BS.ByteString -> P.Parser Config -> P.Parser Config
+parseConfigPair optionName optionValue = do
+    skipSpaceTab
+    _ <- P.string optionName
+    skipSpaceTab
+    _ <- P8.char '='
+    skipSpaceTab
+    optionValue <* skipLineRest
+
+isIgnoredLine :: BS.ByteString -> Bool
+isIgnoredLine line =
+    case BS.uncons (trimLine line) of
+        Nothing     -> True
+        Just (c, _) -> c == char8 '#'
+
+isConfigOption :: BS.ByteString -> BS.ByteString -> Bool
+isConfigOption optionName line =
+    case BS.stripPrefix optionName (trimLine line) of
+        Nothing        -> False
+        Just remainder -> isOptionBoundary remainder
+
+isOptionBoundary :: BS.ByteString -> Bool
+isOptionBoundary remainder =
+    case BS.uncons remainder of
+        Nothing     -> True
+        Just (c, _) -> c == char8 '=' || P8.isHorizontalSpace c
+
+startsWithIPToken :: BS.ByteString -> Bool
+startsWithIPToken line =
+    let token = BS.takeWhile (not . P8.isHorizontalSpace) (trimLine line)
+    in not (BS.null token) && BS.all isIPTokenByte token && BS.any P8.isDigit_w8 token
+
+isIPTokenByte :: Word8 -> Bool
+isIPTokenByte c = P8.isDigit_w8 c || c == char8 '.' || c == char8 ':'
+
+trimLine :: BS.ByteString -> BS.ByteString
+trimLine = BS.dropWhile P8.isHorizontalSpace
+
+char8 :: Char -> Word8
+char8 = fromIntegral . fromEnum
+
+skipSpaceTab1 :: P.Parser ()
+skipSpaceTab1 = P.satisfy P8.isHorizontalSpace *> skipSpaceTab
 skipSpaceTab :: P.Parser ()
 skipSpaceTab = P.skipWhile P8.isHorizontalSpace
 
-skipLine :: P.Parser ()
-skipLine = do
-    P.skipWhile (not . P8.isEndOfLine)
-    P.skipWhile P8.isEndOfLine
+skipLineRest :: P.Parser ()
+skipLineRest = do
+    eof <- P.atEnd
+    if eof
+    then return ()
+    else do
+        skipSpaceTab1
+        _ <- optional (P8.char '#' *> P.takeByteString)
+        P.endOfInput
 
 domain :: P.Parser DNS.Domain
 domain = P8.takeWhile1 (P8.inClass "-.a-zA-Z0-9") <?> "domain name"
@@ -166,10 +269,23 @@ ip4mask = (<?> "IPv4 mask") $ do
         Just ipmask -> return ipmask
 
 port :: P.Parser PortNumber
-port = read . BS8.unpack <$> P.takeWhile1 P8.isDigit_w8 <?> "Port Number"
+port = (<?> "Port Number") $ do
+    portValue <- P8.decimal
+    if portValue <= maxPortNumber
+    then return (fromIntegral (portValue :: Integer))
+    else fail "port number must be between 0 and 65535"
+  where
+    maxPortNumber = 65535 :: Integer
+
+portSuffix :: P.Parser (Maybe PortNumber)
+portSuffix = do
+    hasPort <- P.option False (True <$ P8.char '#')
+    if hasPort
+    then Just <$> port
+    else return Nothing
 
 ipport :: P.Parser (IP, Maybe PortNumber)
-ipport = (,) <$> ip <*> optional (P8.char '#' *> port)
+ipport = (,) <$> ip <*> portSuffix
 
 invalidIPAddress :: IP
 invalidIPAddress = "::"
@@ -259,22 +375,18 @@ configFileOption = many $ strOption
    <> metavar "<file>"
    <> help "Configure file to read")
 
+noHostsOption :: Parser Bool
+noHostsOption = switch
+    ( long "no-hosts"
+   <> short 'h'
+   <> help "Don't read /etc/hosts")
+
 hostsFilesOption :: Parser [FilePath]
-hostsFilesOption = combine <$> noHostsOption <*> many newHostsOption
-  where
-    combine False newHosts = "/etc/hosts" : newHosts
-    combine True newHosts  = newHosts
-
-    newHostsOption = strOption
-        ( long "addn-hosts"
-       <> short 'H'
-       <> metavar "<file>"
-       <> help "Additional hosts file to read other than /etc/hosts")
-
-    noHostsOption = switch
-        ( long "no-hosts"
-       <> short 'h'
-       <> help "Don't read /etc/hosts")
+hostsFilesOption = many $ strOption
+    ( long "addn-hosts"
+   <> short 'H'
+   <> metavar "<file>"
+   <> help "Additional hosts file to read other than /etc/hosts")
 
 ipsetFileOption :: Parser [FilePath]
 ipsetFileOption = many $ strOption
@@ -328,7 +440,7 @@ serverValue = do
     parsedDomain <- optional (P8.char '/' *> domain <* P8.char '/')
     parsedIP <- optional ip
     when (isNothing parsedDomain && isNothing parsedIP) $ fail "at least one of <domain> and <ip> must be specified"
-    parsedPort <- optional (P8.char '#' *> port)
+    parsedPort <- portSuffix
     return (Server parsedDomain (fromMaybe invalidIPAddress parsedIP) parsedPort)
 
 addressValue :: P.Parser Config

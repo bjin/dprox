@@ -46,6 +46,9 @@ ghc-options:
 - -Wcompat
 - -Widentities
 - -Wincomplete-record-updates
+- -Werror=incomplete-patterns
+- -Werror=incomplete-uni-patterns
+- -Werror=partial-fields
 - -Wincomplete-uni-patterns
 - -Wmissing-export-lists
 - -Wmissing-home-modules
