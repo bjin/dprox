@@ -13,6 +13,7 @@ module Config
   , PortNumber
   , getConfig
   , invalidIPAddress
+  , parseConfigFile
   ) where
 
 import Control.Exception                (IOException, try)
@@ -130,7 +131,7 @@ parseConfigFile = P.parseOnly (parseLines parseConfigLine)
         | isConfigOption "local" line = parseConfigPairLine "local" serverValue line
         | isConfigOption "address" line = parseConfigPairLine "address" addressValue line
         | isConfigOption "bogus-nxdomain" line = parseConfigPairLine "bogus-nxdomain" bogusNXValue line
-        | otherwise = Right Nothing
+        | otherwise = Left ("unsupported config directive: " ++ BS8.unpack (trimLine line))
 
 parseHostsFile :: BS.ByteString -> Either String [Config]
 parseHostsFile = P.parseOnly (parseLines parseHostsLine)

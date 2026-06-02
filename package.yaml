@@ -88,8 +88,10 @@ tests:
     - src
     - test
     other-modules:
+    - Config
     - DomainRoute
     - Log
+    - Paths_dprox
     - Unix
     dependencies:
     - hspec

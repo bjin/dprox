@@ -7,8 +7,10 @@ module Main where
 import Control.Monad         (forM_)
 import Data.ByteString.Char8 qualified as BS8
 import Data.Char             (toUpper)
+import Data.List             (isInfixOf)
 import Test.Hspec
 
+import Config
 import DomainRoute
 import Unix
 
@@ -55,6 +57,16 @@ main = hspec $ do
 
         it "handles the longest match" $ forM_ [("c.d.red.com", query "red.com"), ("www.a.b.c.d.red.com", query "a.b.c.d.red.com")] $ \(domain, ans) ->
             getDomainRouteByPrefix dr1 domain `shouldBe` Just ans
+
+    describe "parseConfigFile" $ do
+        it "parses supported directives while ignoring blank and comment lines" $
+            parseConfigFile "# comment\n\nserver=1.1.1.1\n"
+                `shouldBe` Right [Server Nothing "1.1.1.1" Nothing]
+
+        it "rejects unsupported directives with a line-numbered error" $
+            case parseConfigFile "# comment\n\nbogus=1.1.1.1\n" of
+                Left msg -> msg `shouldSatisfy` ("line 3" `isInfixOf`)
+                Right _  -> expectationFailure "unsupported directive parsed successfully"
 
     describe "planPrivilegeDrop" $ do
         let alice = ResolvedUser "alice" 1000 10
