@@ -72,16 +72,14 @@ planPrivilegeDrop userEntry groupEntry allGroups = PrivilegeDropPlan
 dropRootPriviledge :: Logger -> Maybe String -> Maybe String -> IO Bool
 dropRootPriviledge _ Nothing Nothing = return False
 dropRootPriviledge logger user groupName' = do
+    let abort msg = logger ERROR msg >> exitImmediately (ExitFailure 1)
     currentUser <- getRealUserID
     currentGroup <- getRealGroupID
     if currentUser /= 0 || currentGroup /= 0
-    then do
-        logger WARN $ "Unable to setuid/setgid without root priviledge" <>
-                      ", userID=" <> toLogStr (show currentUser) <>
-                      ", groupID=" <> toLogStr (show currentGroup)
-        return False
+    then abort $ "Unable to setuid/setgid without root priviledge" <>
+                 ", userID=" <> toLogStr (show currentUser) <>
+                 ", groupID=" <> toLogStr (show currentGroup)
     else do
-        let abort msg = logger ERROR msg >> exitImmediately (ExitFailure 1)
         let resolveUser entry = ResolvedUser (userName entry) (fromIntegral $ userID entry) (fromIntegral $ userGroupID entry)
             resolveGroup entry = ResolvedGroup (groupName entry) (fromIntegral $ groupID entry) (groupMembers entry)
         resolvedUser <- fmap resolveUser <$> mapM getUserEntryForName user
