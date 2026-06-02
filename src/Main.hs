@@ -40,15 +40,15 @@ instance Hashable DNS.TYPE where
 type Resolver = DNS.Domain -> DNS.TYPE -> IO (Either DNS.DNSError [DNS.RData])
 type CachedResolver = DNS.Domain -> DNS.TYPE -> IO (Either DNS.DNSError (DNS.TTL, [DNS.RData]))
 
-processQuery :: CachedResolver -> DNS.Question -> IO [DNS.ResourceRecord]
+processQuery :: CachedResolver -> DNS.Question -> IO (Either DNS.DNSError [DNS.ResourceRecord])
 processQuery resolver (DNS.Question qd qt) = handle handler $ do
     res <- resolver qd qt
-    case res of
-        Left _         -> return []
-        Right (ttl, r) -> return (map (wrapper ttl) r)
+    return $ case res of
+        Left err       -> Left err
+        Right (ttl, r) -> Right (map (wrapper ttl) r)
   where
-    handler :: SomeException -> IO [DNS.ResourceRecord]
-    handler _ = return []
+    handler :: SomeException -> IO (Either DNS.DNSError [DNS.ResourceRecord])
+    handler _ = return (Left DNS.ServerFailure)
 
     wrapper :: DNS.TTL -> DNS.RData -> DNS.ResourceRecord
     wrapper ttl rdata = DNS.ResourceRecord qd (getType rdata) DNS.classIN ttl rdata
@@ -76,12 +76,26 @@ processDNS :: CachedResolver -> DNS.DNSMessage -> IO (Either DNS.DNSError ByteSt
 processDNS resolver DNS.DNSMessage{ DNS.header = hd, DNS.question = q } = do
     rrs <- mapM (processQuery resolver) q
     let hd0 = DNS.header DNS.defaultResponse
-        resp = DNS.defaultResponse {
-            DNS.header = hd0 { DNS.identifier = DNS.identifier hd },
+        response code answers = DNS.defaultResponse {
+            DNS.header = hd0 {
+                DNS.identifier = DNS.identifier hd,
+                DNS.flags = (DNS.flags hd0) { DNS.rcode = code }
+            },
             DNS.question = q,
-            DNS.answer = concat rrs
+            DNS.answer = answers
         }
+        resp = case sequence rrs of
+            Left err      -> response (dnsErrorCode err) []
+            Right answers -> response DNS.NoErr (concat answers)
     return (Right (DNS.encode resp))
+
+dnsErrorCode :: DNS.DNSError -> DNS.RCODE
+dnsErrorCode DNS.FormatError      = DNS.FormatErr
+dnsErrorCode DNS.NameError        = DNS.NameErr
+dnsErrorCode DNS.NotImplemented   = DNS.NotImpl
+dnsErrorCode DNS.OperationRefused = DNS.Refused
+dnsErrorCode DNS.ServerFailure    = DNS.ServFail
+dnsErrorCode _                    = DNS.ServFail
 
 handleServer :: DomainRoute (Maybe Resolver) -> Resolver
 handleServer route qd qt = case resolver of
