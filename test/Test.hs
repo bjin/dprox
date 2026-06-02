@@ -68,6 +68,14 @@ main = hspec $ do
                 Left msg -> msg `shouldSatisfy` ("line 3" `isInfixOf`)
                 Right _  -> expectationFailure "unsupported directive parsed successfully"
 
+    describe "parseHostsFile" $ do
+        it "emits one hosts entry for each hostname on a line" $
+            parseHostsFile "1.2.3.4 first.example second.example # comment\n"
+                `shouldBe` Right
+                    [ Hosts "first.example" "1.2.3.4"
+                    , Hosts "second.example" "1.2.3.4"
+                    ]
+
     describe "planPrivilegeDrop" $ do
         let alice = ResolvedUser "alice" 1000 10
             primary = ResolvedGroup "primary" 10 ["alice"]

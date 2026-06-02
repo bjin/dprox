@@ -14,6 +14,7 @@ module Config
   , getConfig
   , invalidIPAddress
   , parseConfigFile
+  , parseHostsFile
   ) where
 
 import Control.Exception                (IOException, try)
@@ -134,7 +135,7 @@ parseConfigFile = P.parseOnly (parseLines parseConfigLine)
         | otherwise = Left ("unsupported config directive: " ++ BS8.unpack (trimLine line))
 
 parseHostsFile :: BS.ByteString -> Either String [Config]
-parseHostsFile = P.parseOnly (parseLines parseHostsLine)
+parseHostsFile = fmap concat . P.parseOnly (parseLines parseHostsLine)
   where
     parseHostsLine line
         | isIgnoredLine line = Right Nothing
@@ -144,9 +145,11 @@ parseHostsFile = P.parseOnly (parseLines parseHostsLine)
     parseHosts = do
         skipSpaceTab
         parsedIP <- ip
-        skipSpaceTab1
-        parsedDomain <- domain
-        return (Hosts parsedDomain parsedIP)
+        parsedDomains <- parseDomains
+        skipLineRest
+        return [Hosts parsedDomain parsedIP | parsedDomain <- parsedDomains]
+
+    parseDomains = (:) <$> (skipSpaceTab1 *> domain) <*> P.many' (skipSpaceTab1 *> domain)
 
 parseIPSetFile :: BS.ByteString -> Either String [Config]
 parseIPSetFile = P.parseOnly (parseLines parseIPSetLine)
