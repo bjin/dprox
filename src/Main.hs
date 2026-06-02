@@ -121,8 +121,11 @@ handleAddressAndHosts address hosts resolver qd qt =
                 | otherwise      = []
 
 handleBogusNX :: S.Set IP -> Resolver -> Resolver
-handleBogusNX blacklist resolver qd qt =
-    fmap (filter (not . isBlacklisted)) <$> resolver qd qt
+handleBogusNX blacklist resolver qd qt = do
+    res <- resolver qd qt
+    return $ case res of
+        Right rdata | any isBlacklisted rdata -> Left DNS.NameError
+        _otherwise                            -> res
   where
     isBlacklisted (DNS.RD_A ipv4)    = IPv4 ipv4 `S.member` blacklist
     isBlacklisted (DNS.RD_AAAA ipv6) = IPv6 ipv6 `S.member` blacklist
