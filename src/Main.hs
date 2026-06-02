@@ -162,7 +162,7 @@ handleIPSet ipset match (Just ipsetResolver) cache = handleWithResolver
     handleWithResolver resolver qd qt = resolver qd qt
 
 makeResolverCache :: Int -> DNS.TTL -> IO (Resolver -> CachedResolver)
-makeResolverCache sz ttl | sz <= 0 = return $ \r qd qt -> fmap (ttl,) <$> r qd qt
+makeResolverCache sz ttl | sz <= 0 || ttl == 0 = return $ \r qd qt -> fmap (ttl,) <$> r qd qt
 makeResolverCache sz ttl = do
     cache <- newCache sz ttl
     _ <- forkIO $ forever $ do
