@@ -1,7 +1,7 @@
 ## dprox
 
 [![CircleCI](https://circleci.com/gh/bjin/dprox.svg?style=shield)](https://circleci.com/gh/bjin/dprox)
-[![CirrusCI](https://api.cirrus-ci.com/github/bjin/dprox.svg)](https://cirrus-ci.com/github/bjin/dprox)
+[![macos-aarch64](https://github.com/bjin/dprox/actions/workflows/macos-aarch64.yml/badge.svg)](https://github.com/bjin/dprox/actions/workflows/macos-aarch64.yml)
 [![Release](https://img.shields.io/github/release/bjin/dprox.svg)](https://github.com/bjin/dprox/releases)
 [![Hackage](https://img.shields.io/hackage/v/dprox.svg)](https://hackage.haskell.org/package/dprox)
 [![AUR](https://img.shields.io/aur/version/dprox.svg)](https://aur.archlinux.org/packages/dprox/)
